@@ -29,7 +29,7 @@
   const BGM_STAGE1 = "assets/audio/stage1_spring_pollen_path.mp3";
   const BGM_BOSS = "assets/audio/boss_suginomikoto.mp3";
   const PLAYER_ASSET = "assets/characters/player.png";
-  const APP_VERSION = "0.8.0";
+  const APP_VERSION = "0.8.1";
   const INITIAL_CONTINUES = 3;
   const CHECKPOINTS = [
     { id: 0, name: "STAGE START", time: 0 },
@@ -557,12 +557,6 @@
       // 元画像は正方形で余白があるため、キャラ全身部分をクロップして自機サイズに収める。
       ctx.drawImage(this.image, 245, 12, 545, 960, -25, -39, 50, 58);
       ctx.restore();
-
-      ctx.strokeStyle = "rgba(255, 239, 166, 0.78)";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.roundRect(-25, -39, 50, 58, 14);
-      ctx.stroke();
 
       ctx.fillStyle = "#ffffff";
       ctx.beginPath();
@@ -1218,6 +1212,7 @@
       const scroll = (time * 0.22) % H;
       this.drawCover(ctx, -scroll);
       this.drawCover(ctx, H - scroll);
+      this.blendLoopSeam(ctx, scroll);
 
       // 弾とUIが埋もれないよう、絵の良さを残しつつ少しだけ暗く落とす。
       const shade = ctx.createLinearGradient(0, 0, 0, H);
@@ -1227,6 +1222,33 @@
       ctx.fillStyle = shade;
       ctx.fillRect(0, 0, W, H);
       return true;
+    }
+
+    blendLoopSeam(ctx, scroll) {
+      const seamY = H - scroll;
+      const band = 104;
+      if (seamY < -band || seamY > H + band) return;
+      const top = clamp(seamY - band / 2, 0, H);
+      const height = clamp(band, 0, H - top);
+      if (height <= 0) return;
+
+      ctx.save();
+      const mist = ctx.createLinearGradient(0, top, 0, top + height);
+      mist.addColorStop(0, "rgba(168, 176, 99, 0)");
+      mist.addColorStop(0.35, "rgba(168, 176, 99, 0.22)");
+      mist.addColorStop(0.5, "rgba(198, 188, 108, 0.36)");
+      mist.addColorStop(0.65, "rgba(168, 176, 99, 0.22)");
+      mist.addColorStop(1, "rgba(168, 176, 99, 0)");
+      ctx.fillStyle = mist;
+      ctx.fillRect(0, top, W, height);
+
+      const shade = ctx.createLinearGradient(0, top, 0, top + height);
+      shade.addColorStop(0, "rgba(20, 39, 25, 0)");
+      shade.addColorStop(0.5, "rgba(20, 39, 25, 0.16)");
+      shade.addColorStop(1, "rgba(20, 39, 25, 0)");
+      ctx.fillStyle = shade;
+      ctx.fillRect(0, top, W, height);
+      ctx.restore();
     }
 
     drawCover(ctx, y) {
