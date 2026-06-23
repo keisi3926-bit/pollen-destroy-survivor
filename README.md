@@ -33,6 +33,7 @@ PC:
 - 一面道中
 - ボス「スギノミコト」
 - ビジュアルノベル風会話システム
+- PLAYER立ち絵/自機画像 `assets/characters/player.png` 対応
 - 背景画像 `assets/backgrounds/stage1_pollen_sando.png` 対応
 - 道中BGM `assets/audio/stage1_spring_pollen_path.mp3` 対応
 - ボスBGM `assets/audio/boss_suginomikoto.mp3` 対応
@@ -77,6 +78,7 @@ assets/
     stage1_spring_pollen_path.mp3
     boss_suginomikoto.mp3
   characters/
+    player.png
     .gitkeep
 ```
 

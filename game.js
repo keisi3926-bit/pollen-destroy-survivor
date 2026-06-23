@@ -28,7 +28,8 @@
   const BACKGROUND_STAGE1 = "assets/backgrounds/stage1_pollen_sando.png";
   const BGM_STAGE1 = "assets/audio/stage1_spring_pollen_path.mp3";
   const BGM_BOSS = "assets/audio/boss_suginomikoto.mp3";
-  const APP_VERSION = "0.7.0";
+  const PLAYER_ASSET = "assets/characters/player.png";
+  const APP_VERSION = "0.8.0";
   const INITIAL_CONTINUES = 3;
   const CHECKPOINTS = [
     { id: 0, name: "STAGE START", time: 0 },
@@ -438,6 +439,12 @@
       this.r = 5;
       this.cooldown = 0;
       this.invincible = 0;
+      this.image = new Image();
+      this.imageLoaded = false;
+      this.image.onload = () => {
+        this.imageLoaded = true;
+      };
+      this.image.src = `${PLAYER_ASSET}?v=${APP_VERSION}`;
     }
 
     reset() {
@@ -501,7 +508,13 @@
       ctx.translate(this.x, this.y);
       if (this.invincible > 0 && Math.floor(t / 5) % 2 === 0) ctx.globalAlpha = 0.45;
 
-      // スリッパ本体。丸い先端と白い鼻緒で、画像なしでも識別しやすくする。
+      if (this.imageLoaded) {
+        this.drawCharacterShip(ctx, t);
+        ctx.restore();
+        return;
+      }
+
+      // 画像が読めない場合のフォールバック。
       ctx.fillStyle = "#6ec6ff";
       ctx.strokeStyle = "#dff9ff";
       ctx.lineWidth = 2;
@@ -522,6 +535,39 @@
       ctx.arc(0, 3, this.r, 0, TAU);
       ctx.fill();
       ctx.restore();
+    }
+
+    drawCharacterShip(ctx, t) {
+      const pulse = 0.75 + Math.sin(t * 0.12) * 0.12;
+      ctx.save();
+      ctx.globalCompositeOperation = "screen";
+      const aura = ctx.createRadialGradient(0, -4, 4, 0, -4, 34);
+      aura.addColorStop(0, `rgba(154, 238, 255, ${0.38 + pulse * 0.12})`);
+      aura.addColorStop(1, "rgba(154, 238, 255, 0)");
+      ctx.fillStyle = aura;
+      ctx.beginPath();
+      ctx.arc(0, -4, 34, 0, TAU);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(-25, -39, 50, 58, 14);
+      ctx.clip();
+      // 元画像は正方形で余白があるため、キャラ全身部分をクロップして自機サイズに収める。
+      ctx.drawImage(this.image, 245, 12, 545, 960, -25, -39, 50, 58);
+      ctx.restore();
+
+      ctx.strokeStyle = "rgba(255, 239, 166, 0.78)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(-25, -39, 50, 58, 14);
+      ctx.stroke();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(0, 3, this.r, 0, TAU);
+      ctx.fill();
     }
   }
 
@@ -985,7 +1031,7 @@
       record.image.onerror = () => {
         record.failed = true;
       };
-      record.image.src = this.portraitBase + fileName;
+      record.image.src = `${this.portraitBase}${fileName}?v=${APP_VERSION}`;
       this.cache.set(fileName, record);
       return record;
     }
