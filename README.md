@@ -35,6 +35,7 @@ PC:
 - ビジュアルノベル風会話システム
 - 背景画像 `assets/backgrounds/stage1_pollen_sando.png` 対応
 - 道中BGM `assets/audio/stage1_spring_pollen_path.mp3` 対応
+- ボスBGM `assets/audio/boss_suginomikoto.mp3` 対応
 - 主人公の極履技「スリッパ・ノヴァ」
 - ボス神威進行
 - 残機制、難易度選択、途中復帰
@@ -74,6 +75,7 @@ assets/
     stage1_pollen_sando.png
   audio/
     stage1_spring_pollen_path.mp3
+    boss_suginomikoto.mp3
   characters/
     .gitkeep
 ```

@@ -27,7 +27,8 @@
   const PORTRAIT_BASE = "assets/characters/";
   const BACKGROUND_STAGE1 = "assets/backgrounds/stage1_pollen_sando.png";
   const BGM_STAGE1 = "assets/audio/stage1_spring_pollen_path.mp3";
-  const APP_VERSION = "0.6.0";
+  const BGM_BOSS = "assets/audio/boss_suginomikoto.mp3";
+  const APP_VERSION = "0.7.0";
   const INITIAL_CONTINUES = 3;
   const CHECKPOINTS = [
     { id: 0, name: "STAGE START", time: 0 },
@@ -798,6 +799,7 @@
           game.startDialogue("scene_boss", () => {
             game.state.bossNameTimer = 170;
             game.state.showMessage("戦闘開始", 90);
+            game.audio.playBoss();
             this.beginCurrentCard(game);
           });
         }
@@ -1195,8 +1197,11 @@
   class AudioManager {
     constructor() {
       this.stageBgm = new Audio(`${BGM_STAGE1}?v=${APP_VERSION}`);
+      this.bossBgm = new Audio(`${BGM_BOSS}?v=${APP_VERSION}`);
       this.stageBgm.loop = true;
+      this.bossBgm.loop = true;
       this.stageBgm.volume = 0.48;
+      this.bossBgm.volume = 0.52;
       this.enabled = true;
       this.unlocked = false;
     }
@@ -1208,22 +1213,36 @@
     playStage() {
       if (!this.enabled) return;
       this.unlock();
+      this.bossBgm.pause();
       this.stageBgm.play().catch(() => {
+        // Browser autoplay policies may still block until the next explicit user gesture.
+      });
+    }
+
+    playBoss() {
+      if (!this.enabled) return;
+      this.unlock();
+      this.stageBgm.pause();
+      this.bossBgm.play().catch(() => {
         // Browser autoplay policies may still block until the next explicit user gesture.
       });
     }
 
     pauseStage() {
       this.stageBgm.pause();
+      this.bossBgm.pause();
     }
 
     stopStage() {
       this.stageBgm.pause();
+      this.bossBgm.pause();
       this.stageBgm.currentTime = 0;
+      this.bossBgm.currentTime = 0;
     }
 
     fadeTo(volume) {
       this.stageBgm.volume = clamp(volume, 0, 1);
+      this.bossBgm.volume = clamp(volume, 0, 1);
     }
   }
 
