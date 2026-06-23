@@ -1,0 +1,30 @@
+{
+  "version": "0.3.0",
+  "build": "2026-06-23",
+  "status": "MVP公開準備版",
+  "updates": [
+    {
+      "version": "0.3.0",
+      "date": "2026-06-23",
+      "summary": "サイトトップに更新情報パネル、version.json、Service Worker更新管理を追加。"
+    },
+    {
+      "version": "0.2.0",
+      "date": "2026-06-23",
+      "summary": "主人公スペル「マスタースリッパ」とボスのスペルカード進行を追加。"
+    },
+    {
+      "version": "0.1.0",
+      "date": "2026-06-23",
+      "summary": "花粉滅殺スリッパー一面MVP、会話システム、スギノミコト戦を実装。"
+    }
+  ],
+  "files": [
+    "index.html",
+    "style.css",
+    "game.js",
+    "version.json",
+    "sw.js",
+    "assets/characters/.gitkeep"
+  ]
+}

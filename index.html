@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>花粉滅殺スリッパー</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="game-shell" aria-label="花粉滅殺スリッパー">
+    <section class="update-panel" aria-label="アップデート情報">
+      <div class="update-panel__head">
+        <div>
+          <p class="update-panel__label">UPDATE</p>
+          <h1>花粉滅殺スリッパー</h1>
+        </div>
+        <button id="updateToggle" class="update-panel__toggle" type="button" aria-expanded="true">INFO</button>
+      </div>
+      <div id="updateBody" class="update-panel__body">
+        <div class="update-panel__row">
+          <span id="appVersion">v--</span>
+          <span id="updateStatus">更新情報を確認中</span>
+        </div>
+        <ul id="updateList" class="update-list"></ul>
+        <div class="update-panel__actions">
+          <button id="checkUpdateButton" type="button">更新確認</button>
+          <button id="reloadUpdateButton" type="button" hidden>更新して再読込</button>
+        </div>
+      </div>
+    </section>
+    <canvas id="gameCanvas" width="450" height="800"></canvas>
+    <button id="spellButton" class="spell-button" type="button" aria-label="スペルカード">SPELL</button>
+    <button id="slowButton" class="slow-button" type="button" aria-label="低速モード">低速</button>
+  </main>
+  <script src="game.js"></script>
+</body>
+</html>
