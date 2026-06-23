@@ -1,17 +1,17 @@
-const CACHE_VERSION = "pollen-destroy-slipper-v0.5.0";
+const CACHE_VERSION = "pollen-destroy-slipper-v0.5.1";
 const APP_SHELL = [
   "./",
   "index.html",
   "style.css",
   "game.js",
-  "version.json",
-  "assets/backgrounds/stage1_pollen_sando.png"
+  "version.json"
 ];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_VERSION).then((cache) => cache.addAll(APP_SHELL))
   );
+  self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {

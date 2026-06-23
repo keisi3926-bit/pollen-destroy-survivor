@@ -26,6 +26,7 @@
   };
   const PORTRAIT_BASE = "assets/characters/";
   const BACKGROUND_STAGE1 = "assets/backgrounds/stage1_pollen_sando.png";
+  const APP_VERSION = "0.5.1";
   const INITIAL_CONTINUES = 3;
   const CHECKPOINTS = [
     { id: 0, name: "STAGE START", time: 0 },
@@ -90,7 +91,6 @@
     constructor() {
       this.registration = null;
       this.waitingWorker = null;
-      this.versionUrl = `version.json?ts=${Date.now()}`;
       this.bindUi();
     }
 
@@ -101,6 +101,7 @@
       });
       checkUpdateButton.addEventListener("click", () => this.checkNow());
       reloadUpdateButton.addEventListener("click", () => this.applyUpdate());
+      reloadUpdateButton.textContent = "キャッシュ更新して再読込";
     }
 
     async init() {
@@ -110,11 +111,15 @@
 
     async loadVersion() {
       try {
-        const res = await fetch(this.versionUrl, { cache: "no-store" });
+        const res = await fetch(`version.json?ts=${Date.now()}`, { cache: "no-store" });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         appVersion.textContent = `v${data.version}`;
         updateStatus.textContent = data.status || "最新情報を取得済み";
+        if (data.version && data.version !== APP_VERSION) {
+          updateStatus.textContent = `v${data.version} を取得できます`;
+          reloadUpdateButton.hidden = false;
+        }
         updateList.innerHTML = "";
         (data.updates || []).slice(0, 4).forEach((item) => {
           const li = document.createElement("li");
@@ -155,6 +160,7 @@
         await this.registration.update();
         updateStatus.textContent = this.waitingWorker ? "更新を適用できます" : "最新です";
       }
+      reloadUpdateButton.hidden = false;
     }
 
     markUpdateReady(worker) {
@@ -163,13 +169,25 @@
       reloadUpdateButton.hidden = false;
     }
 
-    applyUpdate() {
+    async applyUpdate() {
       if (!this.waitingWorker) {
-        location.reload();
+        await this.clearRuntimeCaches();
+        location.replace(`${location.pathname}?refresh=${Date.now()}`);
         return;
       }
       navigator.serviceWorker.addEventListener("controllerchange", () => location.reload(), { once: true });
       this.waitingWorker.postMessage({ type: "SKIP_WAITING" });
+    }
+
+    async clearRuntimeCaches() {
+      if ("caches" in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((key) => caches.delete(key)));
+      }
+      if ("serviceWorker" in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map((reg) => reg.unregister()));
+      }
     }
   }
 
@@ -1143,7 +1161,7 @@
       this.image.onerror = () => {
         this.failed = true;
       };
-      this.image.src = src;
+      this.image.src = `${src}?v=${APP_VERSION}`;
     }
 
     draw(ctx, time) {
