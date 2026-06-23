@@ -25,6 +25,7 @@
     return dx * dx + dy * dy;
   };
   const PORTRAIT_BASE = "assets/characters/";
+  const BACKGROUND_STAGE1 = "assets/backgrounds/stage1_pollen_sando.png";
   const INITIAL_CONTINUES = 3;
   const CHECKPOINTS = [
     { id: 0, name: "STAGE START", time: 0 },
@@ -190,7 +191,7 @@
       { speaker: "PLAYER", text: "いや。", portrait: "player.png", side: "left" },
       { speaker: "PLAYER", text: "鼻水は止める。", portrait: "player.png", side: "left" },
       { speaker: "スギノミコト", text: "ならば試してみよ。", portrait: "suginomikoto.png", side: "right" },
-      { speaker: "スギノミコト", text: "花粉奥義――", portrait: "suginomikoto.png", side: "right" },
+      { speaker: "スギノミコト", text: "神威――", portrait: "suginomikoto.png", side: "right" },
       { speaker: "スギノミコト", text: "無限飛散。", portrait: "suginomikoto.png", side: "right" },
       { speaker: "PLAYER", text: "……来るか。", portrait: "player.png", side: "left" },
       { speaker: "スギノミコト", text: "これは神事。", portrait: "suginomikoto.png", side: "right" },
@@ -199,9 +200,9 @@
       { speaker: "PLAYER", text: "知るか。", portrait: "player.png", side: "left" },
       { speaker: "PLAYER", text: "こっちは鼻が限界なんだよ。", portrait: "player.png", side: "left" },
       { speaker: "スギノミコト", text: "ならば受けよ。", portrait: "suginomikoto.png", side: "right" },
-      { speaker: "スギノミコト", text: "花粉符「黄塵円舞」", portrait: "suginomikoto.png", side: "right" },
+      { speaker: "スギノミコト", text: "神威『黄塵円舞』", portrait: "suginomikoto.png", side: "right" },
       { speaker: "PLAYER", text: "上等だ。", portrait: "player.png", side: "left" },
-      { speaker: "PLAYER", text: "マスタースリッパで叩き落とす。", portrait: "player.png", side: "left" },
+      { speaker: "PLAYER", text: "極履技『スリッパ・ノヴァ』で叩き落とす。", portrait: "player.png", side: "left" },
     ],
     scene_clear: [
       { speaker: "スギノミコト", text: "見事だ……", portrait: "suginomikoto.png", side: "right" },
@@ -740,12 +741,12 @@
   };
 
   const BOSS_SPELL_LIBRARY = [
-    { name: "花粉符「黄塵円舞」", pattern: "yellowDance", status: "stage1" },
-    { name: "杉符「針葉雨」", pattern: "needleRain", status: "stage1" },
-    { name: "鼻撃符「連続くしゃみ」", pattern: "sneezeCombo", status: "future" },
-    { name: "春霞符「視界不良」", pattern: "poorVisibility", status: "future" },
-    { name: "神木符「杉並木封鎖」", pattern: "cedarBlockade", status: "stage1" },
-    { name: "奥義「無限飛散」", pattern: "infiniteScatter", status: "stage1" },
+    { name: "神威「黄塵円舞」", pattern: "yellowDance", status: "stage1" },
+    { name: "神威「針葉雨」", pattern: "needleRain", status: "stage1" },
+    { name: "鼻撃神威「連続くしゃみ」", pattern: "sneezeCombo", status: "future" },
+    { name: "春霞神威「視界不良」", pattern: "poorVisibility", status: "future" },
+    { name: "神木神威「杉並木封鎖」", pattern: "cedarBlockade", status: "stage1" },
+    { name: "大神威「無限飛散」", pattern: "infiniteScatter", status: "stage1" },
   ];
 
   class Boss {
@@ -796,12 +797,12 @@
     createSpellCards() {
       return [
         new SpellCard({ name: "通常攻撃1", duration: 520, hp: 240, pattern: "normalSpread", type: "normal" }),
-        new SpellCard({ name: "花粉符「黄塵円舞」", duration: 620, hp: 250, pattern: "yellowDance" }),
+        new SpellCard({ name: "神威「黄塵円舞」", duration: 620, hp: 250, pattern: "yellowDance" }),
         new SpellCard({ name: "通常攻撃2", duration: 460, hp: 220, pattern: "aimedPollen", type: "normal" }),
-        new SpellCard({ name: "杉符「針葉雨」", duration: 620, hp: 260, pattern: "needleRain" }),
+        new SpellCard({ name: "神威「針葉雨」", duration: 620, hp: 260, pattern: "needleRain" }),
         new SpellCard({ name: "通常攻撃3", duration: 500, hp: 230, pattern: "wavePollen", type: "normal" }),
-        new SpellCard({ name: "神木符「杉並木封鎖」", duration: 620, hp: 260, pattern: "cedarBlockade" }),
-        new SpellCard({ name: "奥義「無限飛散」", duration: 820, hp: 360, pattern: "infiniteScatter" }),
+        new SpellCard({ name: "神木神威「杉並木封鎖」", duration: 620, hp: 260, pattern: "cedarBlockade" }),
+        new SpellCard({ name: "大神威「無限飛散」", duration: 820, hp: 360, pattern: "infiniteScatter" }),
       ];
     }
 
@@ -1131,6 +1132,47 @@
     }
   }
 
+  class BackgroundManager {
+    constructor(src) {
+      this.image = new Image();
+      this.loaded = false;
+      this.failed = false;
+      this.image.onload = () => {
+        this.loaded = true;
+      };
+      this.image.onerror = () => {
+        this.failed = true;
+      };
+      this.image.src = src;
+    }
+
+    draw(ctx, time) {
+      if (!this.loaded || this.failed) return false;
+      const scroll = (time * 0.22) % H;
+      this.drawCover(ctx, -scroll);
+      this.drawCover(ctx, H - scroll);
+
+      // 弾とUIが埋もれないよう、絵の良さを残しつつ少しだけ暗く落とす。
+      const shade = ctx.createLinearGradient(0, 0, 0, H);
+      shade.addColorStop(0, "rgba(16, 28, 17, 0.16)");
+      shade.addColorStop(0.55, "rgba(13, 22, 14, 0.10)");
+      shade.addColorStop(1, "rgba(3, 9, 7, 0.34)");
+      ctx.fillStyle = shade;
+      ctx.fillRect(0, 0, W, H);
+      return true;
+    }
+
+    drawCover(ctx, y) {
+      const iw = this.image.width;
+      const ih = this.image.height;
+      const scale = Math.max(W / iw, H / ih);
+      const dw = iw * scale;
+      const dh = ih * scale;
+      const x = (W - dw) / 2;
+      ctx.drawImage(this.image, x, y, dw, dh);
+    }
+  }
+
   class Game {
     constructor() {
       this.state = new GameState();
@@ -1139,6 +1181,7 @@
       this.life = new LifeManager(this);
       this.checkpoints = new CheckpointManager();
       this.save = new SaveManager();
+      this.background = new BackgroundManager(BACKGROUND_STAGE1);
       this.titleMenu = new MenuManager(["START GAME", "DIFFICULTY", "HOW TO PLAY", "HIGH SCORE"].map((label) => ({ label })));
       this.pauseMenu = new MenuManager();
       this.gameOverMenu = new MenuManager();
@@ -1533,7 +1576,7 @@
       this.cancelEnemyBullets(true);
       this.lasers = [];
       this.state.shake = 16;
-      this.state.showMessage("MASTER SLIPPER", 100);
+      this.state.showMessage("履技発動：スリッパ・ノヴァ", 100);
       for (let i = 0; i < 40; i += 1) this.particles.push(new Particle(this.player.x, this.player.y - 40, "#bdf6ff"));
     }
 
@@ -1755,15 +1798,19 @@
       ctx.fillStyle = "#e8fbff";
       ctx.font = "900 38px system-ui, sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText("MASTER SLIPPER", W / 2, H / 2 - 16);
+      ctx.fillText("SLIPPER NOVA", W / 2, H / 2 - 16);
       ctx.fillStyle = "#9cefff";
       ctx.font = "700 17px system-ui, sans-serif";
-      ctx.fillText("マスタースリッパ", W / 2, H / 2 + 22);
+      ctx.fillText("極履技「スリッパ・ノヴァ」", W / 2, H / 2 + 22);
       ctx.restore();
     }
 
     drawBackground() {
       const t = this.state.time || 0;
+      if (this.background.draw(ctx, t)) {
+        this.drawPollenForeground(t);
+        return;
+      }
       const sky = ctx.createLinearGradient(0, 0, 0, H);
       sky.addColorStop(0, "#d8f1bf");
       sky.addColorStop(0.35, "#9fcf96");
@@ -1802,6 +1849,18 @@
       }
     }
 
+    drawPollenForeground(t) {
+      for (let i = 0; i < 54; i += 1) {
+        const x = (i * 67 + Math.sin(t * 0.012 + i) * 34) % W;
+        const y = (i * 119 + t * (0.28 + (i % 4) * 0.05)) % H;
+        const r = 1.4 + (i % 5) * 0.8;
+        ctx.fillStyle = `rgba(246, 219, 82, ${0.09 + (i % 4) * 0.035})`;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, TAU);
+        ctx.fill();
+      }
+    }
+
     drawLaser(l) {
       if (l.age <= l.warn) {
         ctx.globalAlpha = 0.28 + Math.sin(l.age * 0.4) * 0.12;
@@ -1831,7 +1890,7 @@
       ctx.fillStyle = "#fff0a8";
       ctx.font = "700 13px system-ui, sans-serif";
       ctx.textAlign = "left";
-      ctx.fillText(`SPELL ${this.playerSpellCount}`, 12, 55);
+      ctx.fillText(`履技 x ${this.playerSpellCount}`, 12, 55);
       ctx.textAlign = "right";
       ctx.fillText(`CP ${this.checkpoints.current}  CONT ${this.continueCount}`, W - 12, 55);
 
@@ -1855,7 +1914,7 @@
       ctx.fillStyle = "rgba(255, 255, 255, 0.68)";
       ctx.font = "12px system-ui, sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText("花粉滅殺スリッパー", W / 2, H - 12);
+      ctx.fillText("花粉滅殺スリッパー！", W / 2, H - 12);
 
       if (this.state.messageTimer > 0) {
         ctx.fillStyle = "rgba(9, 20, 15, 0.68)";
@@ -1885,7 +1944,7 @@
       ctx.fillText("花粉滅殺", W / 2, 230);
       ctx.fillStyle = "#91e9ff";
       ctx.font = "900 36px system-ui, sans-serif";
-      ctx.fillText("スリッパー", W / 2, 276);
+      ctx.fillText("スリッパー！", W / 2, 276);
       ctx.fillStyle = "#fff1a6";
       ctx.font = "16px system-ui, sans-serif";
       ctx.fillText("King of Slipper 外伝ミニゲーム", W / 2, 320);
@@ -1897,7 +1956,7 @@
       ctx.font = "13px system-ui, sans-serif";
       if (this.titlePanel === "how") {
         ctx.fillText("移動: 矢印/WASD/ドラッグ  低速: Shift/低速ボタン", W / 2, 610);
-        ctx.fillText("ショット: Z/Space  スペル: X/SPELL  ポーズ: Esc/P/MENU", W / 2, 634);
+        ctx.fillText("ショット: Z/Space  履技: X/履技ボタン  ポーズ: Esc/P/MENU", W / 2, 634);
       } else if (this.titlePanel === "score") {
         const save = this.save.data;
         ctx.fillText(`EASY ${save.easy.highScore} / CP${save.easy.maxCheckpoint} / ${save.easy.cleared ? "CLEAR" : "未クリア"}`, W / 2, 598);

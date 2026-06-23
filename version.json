@@ -1,8 +1,13 @@
 {
-  "version": "0.4.0",
+  "version": "0.5.0",
   "build": "2026-06-23",
   "status": "MVP公開準備版",
   "updates": [
+    {
+      "version": "0.5.0",
+      "date": "2026-06-23",
+      "summary": "春の花粉参道背景画像を実装し、表示用語を履技・神威・大神威へ更新。"
+    },
     {
       "version": "0.4.0",
       "date": "2026-06-23",
@@ -16,7 +21,7 @@
     {
       "version": "0.2.0",
       "date": "2026-06-23",
-      "summary": "主人公スペル「マスタースリッパ」とボスのスペルカード進行を追加。"
+      "summary": "主人公の大技とボス大技進行を追加。"
     },
     {
       "version": "0.1.0",
@@ -30,6 +35,7 @@
     "game.js",
     "version.json",
     "sw.js",
+    "assets/backgrounds/stage1_pollen_sando.png",
     "assets/characters/.gitkeep"
   ]
 }
