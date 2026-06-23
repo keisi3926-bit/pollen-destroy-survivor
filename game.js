@@ -26,7 +26,8 @@
   };
   const PORTRAIT_BASE = "assets/characters/";
   const BACKGROUND_STAGE1 = "assets/backgrounds/stage1_pollen_sando.png";
-  const APP_VERSION = "0.5.1";
+  const BGM_STAGE1 = "assets/audio/stage1_spring_pollen_path.mp3";
+  const APP_VERSION = "0.6.0";
   const INITIAL_CONTINUES = 3;
   const CHECKPOINTS = [
     { id: 0, name: "STAGE START", time: 0 },
@@ -1191,6 +1192,41 @@
     }
   }
 
+  class AudioManager {
+    constructor() {
+      this.stageBgm = new Audio(`${BGM_STAGE1}?v=${APP_VERSION}`);
+      this.stageBgm.loop = true;
+      this.stageBgm.volume = 0.48;
+      this.enabled = true;
+      this.unlocked = false;
+    }
+
+    unlock() {
+      this.unlocked = true;
+    }
+
+    playStage() {
+      if (!this.enabled) return;
+      this.unlock();
+      this.stageBgm.play().catch(() => {
+        // Browser autoplay policies may still block until the next explicit user gesture.
+      });
+    }
+
+    pauseStage() {
+      this.stageBgm.pause();
+    }
+
+    stopStage() {
+      this.stageBgm.pause();
+      this.stageBgm.currentTime = 0;
+    }
+
+    fadeTo(volume) {
+      this.stageBgm.volume = clamp(volume, 0, 1);
+    }
+  }
+
   class Game {
     constructor() {
       this.state = new GameState();
@@ -1200,6 +1236,7 @@
       this.checkpoints = new CheckpointManager();
       this.save = new SaveManager();
       this.background = new BackgroundManager(BACKGROUND_STAGE1);
+      this.audio = new AudioManager();
       this.titleMenu = new MenuManager(["START GAME", "DIFFICULTY", "HOW TO PLAY", "HIGH SCORE"].map((label) => ({ label })));
       this.pauseMenu = new MenuManager();
       this.gameOverMenu = new MenuManager();
@@ -1261,6 +1298,7 @@
         this.life.lives = Math.max(1, this.life.lives);
       }
       this.state.showMessage(fromCheckpoint ? `${this.checkpoints.currentPoint.name} から再開` : "一面開始", 120);
+      this.audio.playStage();
       if (!fromCheckpoint) this.startDialogue("scene_intro");
     }
 
@@ -1275,6 +1313,7 @@
       this.boss = null;
       this.playerSpellTimer = 0;
       this.state.time = 0;
+      this.audio.stopStage();
     }
 
     startDialogue(sceneName, onComplete = null) {
@@ -1401,6 +1440,7 @@
     openPauseMenu() {
       if (this.state.mode !== "stage" || this.dialogue.active) return;
       this.state.mode = "paused";
+      this.audio.pauseStage();
       this.pauseMenu.setItems([
         { label: "RESUME", action: "resume" },
         { label: "RESTART", action: "restart", confirm: "ステージを最初からやり直しますか？" },
@@ -1410,7 +1450,10 @@
     }
 
     resumeFromPause() {
-      if (this.state.mode === "paused") this.state.mode = "stage";
+      if (this.state.mode === "paused") {
+        this.state.mode = "stage";
+        this.audio.playStage();
+      }
     }
 
     handlePauseKey(key) {
@@ -1450,6 +1493,7 @@
 
     openGameOverMenu() {
       this.state.mode = "gameover";
+      this.audio.pauseStage();
       this.saveCurrentRun(false);
       this.gameOverMenu.setItems([
         { label: "CONTINUE", action: "continue", disabled: this.continuesLeft <= 0 },
@@ -1731,6 +1775,7 @@
       this.enemyBullets = [];
       this.lasers = [];
       this.playerSpellTimer = 0;
+      this.audio.pauseStage();
       this.state.showMessage("消滅", 120);
       this.startDialogue("scene_clear", () => {
         this.boss = null;
