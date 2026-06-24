@@ -155,6 +155,28 @@ game.audio.setMute(true);
 assert.equal(game.audio.currentBGM.volume, 0, "master mute should silence BGM");
 game.audio.setMute(false);
 assert.equal(game.audio.currentBGM.volume, 0.55, "unmute should restore the saved BGM volume");
+assert.equal(
+  Array.from(game.titleMenu.items, (item) => item.label).join("|"),
+  "START GAME|OPTIONS|HOW TO PLAY|HIGH SCORE",
+  "title menu should expose the requested four entries"
+);
+game.openOptions();
+assert.equal(game.titlePanel, "options");
+assert.equal(game.optionsMenu.items.length, 4, "options should contain BGM, SE, mute and back");
+const bgmBeforeTouch = game.audio.getBGMVolume();
+game.handleCanvasTap({ clientX: 350, clientY: 370 });
+assert.equal(game.audio.getBGMVolume(), Math.min(1, bgmBeforeTouch + 0.05), "options touch right side should increase BGM");
+game.optionsMenu.index = 1;
+const seBeforeGamepad = game.audio.getSEVolume();
+game.handleGamepadMenu(Array(16).fill(false), (index) => index === 15, 0, 0, game.optionsMenu);
+assert.equal(game.audio.getSEVolume(), Math.min(1, seBeforeGamepad + 0.05), "Xbox right input should increase SE volume");
+game.optionsMenu.index = 2;
+game.activateOptionItem();
+assert.equal(game.audio.settings.masterMute, true, "master mute option should toggle on");
+game.activateOptionItem();
+assert.equal(game.audio.settings.masterMute, false, "master mute option should toggle off");
+game.closeOptions();
+assert.equal(game.titlePanel, "main");
 
 game.start(false, false);
 game.dialogue.active = false;
@@ -275,6 +297,7 @@ assert.ok(
 collectible.x = game.player.x;
 collectible.y = game.player.y;
 game.power.value = 0;
+game.audio.lastSETime.delete("item_p_small");
 game.resolveCollisions();
 assert.equal(game.powerItems.includes(collectible), false, "collected power item should be removed immediately");
 assert.equal(collectible.collected, true, "collected flag should be set");

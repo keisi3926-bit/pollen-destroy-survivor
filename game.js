@@ -1944,7 +1944,13 @@
         this.suginomikotoCutinLoaded = false;
       };
       this.suginomikotoCutin.src = `${SUGINOMIKOTO_CUTIN_ASSET}?v=${APP_VERSION}`;
-      this.titleMenu = new MenuManager(["START GAME", "DIFFICULTY", "HOW TO PLAY", "HIGH SCORE"].map((label) => ({ label })));
+      this.titleMenu = new MenuManager(["START GAME", "OPTIONS", "HOW TO PLAY", "HIGH SCORE"].map((label) => ({ label })));
+      this.optionsMenu = new MenuManager([
+        { label: "BGM VOLUME", action: "bgm" },
+        { label: "SE VOLUME", action: "se" },
+        { label: "MASTER MUTE", action: "mute" },
+        { label: "BACK", action: "back" },
+      ]);
       this.pauseMenu = new MenuManager();
       this.gameOverMenu = new MenuManager();
       this.player = new Player();
@@ -2162,6 +2168,7 @@
 
       canvas.addEventListener("pointerdown", (e) => {
         this.audio.unlock();
+        if (this.state.mode === "title") this.ensureTitleBGM();
         if (e.button === 2) {
           e.preventDefault();
           if (!this.dialogue.active) this.activatePlayerSpell();
@@ -2258,20 +2265,80 @@
     }
 
     handleTitleKey(key) {
-      if (key === "ArrowUp" || key === "w" || key === "W") this.titleMenu.move(-1);
-      if (key === "ArrowDown" || key === "s" || key === "S") this.titleMenu.move(1);
-      if (this.titleMenu.selected()?.label === "DIFFICULTY" && (key === "ArrowLeft" || key === "a" || key === "A")) this.changeDifficulty(-1);
-      if (this.titleMenu.selected()?.label === "DIFFICULTY" && (key === "ArrowRight" || key === "d" || key === "D")) this.changeDifficulty(1);
+      this.ensureTitleBGM();
+      if (this.titlePanel === "options") {
+        if (key === "ArrowUp" || key === "w" || key === "W") this.moveMenu(this.optionsMenu, -1);
+        if (key === "ArrowDown" || key === "s" || key === "S") this.moveMenu(this.optionsMenu, 1);
+        if (key === "ArrowLeft" || key === "a" || key === "A") this.adjustOption(-1);
+        if (key === "ArrowRight" || key === "d" || key === "D") this.adjustOption(1);
+        if (key === "z" || key === "Z" || key === " " || key === "Enter") this.activateOptionItem();
+        if (key === "Escape") this.closeOptions();
+        return;
+      }
+      if (key === "ArrowUp" || key === "w" || key === "W") this.moveMenu(this.titleMenu, -1);
+      if (key === "ArrowDown" || key === "s" || key === "S") this.moveMenu(this.titleMenu, 1);
+      if (this.titleMenu.selected()?.label === "START GAME" && (key === "ArrowLeft" || key === "a" || key === "A")) this.changeDifficulty(-1);
+      if (this.titleMenu.selected()?.label === "START GAME" && (key === "ArrowRight" || key === "d" || key === "D")) this.changeDifficulty(1);
       if (key === "z" || key === "Z" || key === " " || key === "Enter") this.activateTitleItem();
-      if (key === "Escape") this.titlePanel = "main";
+      if (key === "Escape") {
+        this.audio.playSE("menu_cancel");
+        this.titlePanel = "main";
+      }
     }
 
     activateTitleItem() {
       const label = this.titleMenu.selected()?.label;
+      this.audio.playSE("menu_decide");
       if (label === "START GAME") this.start(false, false);
-      if (label === "DIFFICULTY") this.changeDifficulty(1);
+      if (label === "OPTIONS") this.openOptions();
       if (label === "HOW TO PLAY") this.titlePanel = this.titlePanel === "how" ? "main" : "how";
       if (label === "HIGH SCORE") this.titlePanel = this.titlePanel === "score" ? "main" : "score";
+    }
+
+    ensureTitleBGM() {
+      if (this.state.mode === "title" && this.audio.currentBGMName !== "stage") this.audio.playBGM("stage", true);
+    }
+
+    moveMenu(menu, delta) {
+      menu.move(delta);
+      this.audio.playSE("menu_move");
+    }
+
+    openOptions() {
+      this.titlePanel = "options";
+      this.optionsMenu.index = 0;
+    }
+
+    closeOptions() {
+      this.audio.playSE("menu_cancel");
+      this.titlePanel = "main";
+    }
+
+    adjustOption(delta) {
+      const action = this.optionsMenu.selected()?.action;
+      if (action === "bgm") {
+        this.audio.setBGMVolume(this.audio.getBGMVolume() + delta * 0.05);
+      } else if (action === "se") {
+        this.audio.setSEVolume(this.audio.getSEVolume() + delta * 0.05);
+        this.audio.playSE("item_p_small", { cooldown: 0, maxVoices: 1 });
+      } else if (action === "mute") {
+        this.audio.toggleMute();
+      } else {
+        return;
+      }
+      this.audio.playSE("menu_move", { cooldown: 0, maxVoices: 1 });
+    }
+
+    activateOptionItem() {
+      const action = this.optionsMenu.selected()?.action;
+      if (action === "mute") {
+        this.audio.toggleMute();
+        this.audio.playSE("menu_decide");
+      } else if (action === "back") {
+        this.closeOptions();
+      } else {
+        this.audio.playSE("menu_decide");
+      }
     }
 
     changeDifficulty(delta) {
@@ -2300,17 +2367,19 @@
 
     handlePauseKey(key) {
       if (key === "Escape" || key === "p" || key === "P") {
+        this.audio.playSE("menu_cancel");
         if (this.pauseMenu.confirm) this.pauseMenu.confirm = null;
         else this.resumeFromPause();
         return;
       }
-      if (key === "ArrowUp" || key === "w" || key === "W") this.pauseMenu.move(-1);
-      if (key === "ArrowDown" || key === "s" || key === "S") this.pauseMenu.move(1);
-      if (key === "ArrowLeft" || key === "ArrowRight" || key === "a" || key === "d" || key === "A" || key === "D") this.pauseMenu.move(1);
+      if (key === "ArrowUp" || key === "w" || key === "W") this.moveMenu(this.pauseMenu, -1);
+      if (key === "ArrowDown" || key === "s" || key === "S") this.moveMenu(this.pauseMenu, 1);
+      if (key === "ArrowLeft" || key === "ArrowRight" || key === "a" || key === "d" || key === "A" || key === "D") this.moveMenu(this.pauseMenu, 1);
       if (key === "z" || key === "Z" || key === " " || key === "Enter") this.activatePauseItem();
     }
 
     activatePauseItem() {
+      this.audio.playSE("menu_decide");
       if (this.pauseMenu.confirm) {
         if (this.pauseMenu.confirm.choice === 0) this.executePauseAction(this.pauseMenu.confirm.action);
         else this.pauseMenu.confirm = null;
@@ -2345,13 +2414,17 @@
     }
 
     handleGameOverKey(key) {
-      if (key === "ArrowUp" || key === "w" || key === "W") this.gameOverMenu.move(-1);
-      if (key === "ArrowDown" || key === "s" || key === "S") this.gameOverMenu.move(1);
-      if (key === "Escape") this.returnToTitle();
+      if (key === "ArrowUp" || key === "w" || key === "W") this.moveMenu(this.gameOverMenu, -1);
+      if (key === "ArrowDown" || key === "s" || key === "S") this.moveMenu(this.gameOverMenu, 1);
+      if (key === "Escape") {
+        this.audio.playSE("menu_cancel");
+        this.returnToTitle();
+      }
       if (key === "z" || key === "Z" || key === " " || key === "Enter") this.activateGameOverItem();
     }
 
     activateGameOverItem() {
+      this.audio.playSE("menu_decide");
       const item = this.gameOverMenu.selected();
       if (!item || item.disabled) return;
       if (item.action === "continue") this.continueFromCheckpoint();
@@ -2374,11 +2447,23 @@
       }
       if (this.state.mode !== "title" && this.state.mode !== "paused" && this.state.mode !== "gameover") return false;
       const pos = this.canvasPoint(e);
+      if (this.state.mode === "title" && this.titlePanel === "main" && pos.y >= 594 && pos.y <= 632) {
+        this.changeDifficulty(pos.x < W / 2 ? -1 : 1);
+        this.audio.playSE("menu_move");
+        return true;
+      }
       const hit = this.hitMenuItem(pos.x, pos.y);
       if (hit === null) return false;
       if (this.state.mode === "title") {
-        this.titleMenu.index = hit;
-        this.activateTitleItem();
+        if (this.titlePanel === "options") {
+          this.optionsMenu.index = hit;
+          const action = this.optionsMenu.selected()?.action;
+          if (action === "bgm" || action === "se") this.adjustOption(pos.x < W / 2 ? -1 : 1);
+          else this.activateOptionItem();
+        } else {
+          this.titleMenu.index = hit;
+          this.activateTitleItem();
+        }
       } else if (this.state.mode === "paused") {
         if (this.pauseMenu.confirm) {
           this.pauseMenu.confirm.choice = hit;
@@ -2415,7 +2500,7 @@
         if (y >= 462 && y <= 512) return x < W / 2 ? 0 : 1;
         return null;
       }
-      const startY = this.state.mode === "title" ? 395 : 345;
+      const startY = this.state.mode === "title" ? (this.titlePanel === "options" ? 365 : 395) : 345;
       for (let i = 0; i < menu.items.length; i += 1) {
         const top = startY + i * 48;
         if (y >= top && y <= top + 38) return i;
@@ -2424,7 +2509,7 @@
     }
 
     getActiveMenu() {
-      if (this.state.mode === "title") return this.titleMenu;
+      if (this.state.mode === "title") return this.titlePanel === "options" ? this.optionsMenu : this.titleMenu;
       if (this.state.mode === "paused") return this.pauseMenu;
       if (this.state.mode === "gameover") return this.gameOverMenu;
       return null;
@@ -2483,9 +2568,19 @@
       }
 
       if (this.state.mode === "title") {
-        this.handleGamepadMenu(buttons, justPressed, axisX, axisY, this.titleMenu);
-        if (justPressed(0)) this.activateTitleItem();
-        if (justPressed(1)) this.titlePanel = "main";
+        const titleMenu = this.titlePanel === "options" ? this.optionsMenu : this.titleMenu;
+        this.handleGamepadMenu(buttons, justPressed, axisX, axisY, titleMenu);
+        if (justPressed(0)) {
+          if (this.titlePanel === "options") this.activateOptionItem();
+          else this.activateTitleItem();
+        }
+        if (justPressed(1)) {
+          if (this.titlePanel === "options") this.closeOptions();
+          else {
+            this.audio.playSE("menu_cancel");
+            this.titlePanel = "main";
+          }
+        }
       } else if (this.state.mode === "paused") {
         this.handleGamepadMenu(buttons, justPressed, axisX, axisY, this.pauseMenu);
         if (justPressed(0)) this.activatePauseItem();
@@ -2512,23 +2607,25 @@
       const canRepeat = this.gamepad.navCooldown <= 0;
 
       if (justPressed(12) || (yDir < 0 && canRepeat)) {
-        menu.move(-1);
+        this.moveMenu(menu, -1);
         this.gamepad.navCooldown = 12;
       }
       if (justPressed(13) || (yDir > 0 && canRepeat)) {
-        menu.move(1);
+        this.moveMenu(menu, 1);
         this.gamepad.navCooldown = 12;
       }
       if (justPressed(14) || (xDir < 0 && canRepeat)) {
-        if (this.state.mode === "title" && this.titleMenu.selected()?.label === "DIFFICULTY") this.changeDifficulty(-1);
+        if (this.state.mode === "title" && this.titlePanel === "options") this.adjustOption(-1);
+        else if (this.state.mode === "title" && this.titleMenu.selected()?.label === "START GAME") this.changeDifficulty(-1);
         else if (menu.confirm) menu.confirm.choice = 0;
-        else menu.move(-1);
+        else this.moveMenu(menu, -1);
         this.gamepad.navCooldown = 12;
       }
       if (justPressed(15) || (xDir > 0 && canRepeat)) {
-        if (this.state.mode === "title" && this.titleMenu.selected()?.label === "DIFFICULTY") this.changeDifficulty(1);
+        if (this.state.mode === "title" && this.titlePanel === "options") this.adjustOption(1);
+        else if (this.state.mode === "title" && this.titleMenu.selected()?.label === "START GAME") this.changeDifficulty(1);
         else if (menu.confirm) menu.confirm.choice = 1;
-        else menu.move(1);
+        else this.moveMenu(menu, 1);
         this.gamepad.navCooldown = 12;
       }
     }
@@ -3333,8 +3430,11 @@
       ctx.fillStyle = "#fff1a6";
       ctx.font = "16px system-ui, sans-serif";
       ctx.fillText("King of Slipper 外伝ミニゲーム", W / 2, 320);
+      if (this.titlePanel === "options") {
+        this.drawOptions();
+        return;
+      }
       this.drawMenu(this.titleMenu, 395, (item) => {
-        if (item.label === "DIFFICULTY") return `DIFFICULTY  < ${this.difficulty.label} >`;
         return item.label;
       });
       ctx.fillStyle = "rgba(239, 255, 237, 0.82)";
@@ -3350,8 +3450,40 @@
         ctx.fillText(`NORMAL ${save.normal.highScore} / CP${save.normal.maxCheckpoint} / ${save.normal.cleared ? "CLEAR" : "未クリア"}`, W / 2, 622);
         ctx.fillText(`HARD ${save.hard.highScore} / CP${save.hard.maxCheckpoint} / ${save.hard.cleared ? "CLEAR" : "未クリア"}`, W / 2, 646);
       } else {
-        ctx.fillText("上下で選択、左右で難易度変更、Z/Enter/タップで決定", W / 2, 624);
+        ctx.fillStyle = "rgba(0, 0, 0, 0.42)";
+        ctx.fillRect(86, 594, W - 172, 38);
+        ctx.strokeStyle = "rgba(255, 240, 168, 0.58)";
+        ctx.strokeRect(86, 594, W - 172, 38);
+        ctx.fillStyle = "#fff0a8";
+        ctx.font = "800 15px system-ui, sans-serif";
+        ctx.fillText(`DIFFICULTY  < ${this.difficulty.label} >`, W / 2, 619);
+        ctx.fillStyle = "rgba(239, 255, 237, 0.82)";
+        ctx.font = "13px system-ui, sans-serif";
+        ctx.fillText("上下で選択、START選択中の左右で難易度変更", W / 2, 660);
       }
+    }
+
+    drawOptions() {
+      ctx.fillStyle = "#f8ffe9";
+      ctx.font = "900 28px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("OPTIONS", W / 2, 350);
+      this.drawMenu(this.optionsMenu, 365, (item) => {
+        if (item.action === "bgm") return this.formatVolumeOption("BGM VOLUME", this.audio.getBGMVolume());
+        if (item.action === "se") return this.formatVolumeOption("SE VOLUME", this.audio.getSEVolume());
+        if (item.action === "mute") return `MASTER MUTE  [${this.audio.settings.masterMute ? "ON" : "OFF"}]`;
+        return item.label;
+      });
+      ctx.fillStyle = "rgba(239, 255, 237, 0.75)";
+      ctx.font = "13px system-ui, sans-serif";
+      ctx.fillText("左右・画面左/右タップで調整", W / 2, 590);
+      ctx.fillText("Esc / B で戻る", W / 2, 614);
+    }
+
+    formatVolumeOption(label, value) {
+      const percent = Math.round(value * 100);
+      const filled = Math.round(percent / 10);
+      return `${label}  [${"■".repeat(filled)}${"□".repeat(10 - filled)}] ${percent}`;
     }
 
     drawMenu(menu, startY, labeler = (item) => item.label) {
@@ -3363,9 +3495,10 @@
         ctx.fillRect(86, startY + i * 48, W - 172, 38);
         ctx.strokeStyle = selected ? "#fff0a8" : "rgba(255,255,255,0.18)";
         ctx.strokeRect(86, startY + i * 48, W - 172, 38);
+        const label = labeler(item);
         ctx.fillStyle = item.disabled ? "rgba(255,255,255,0.32)" : "#f6fff1";
-        ctx.font = "800 18px system-ui, sans-serif";
-        ctx.fillText(labeler(item), W / 2, startY + i * 48 + 25);
+        ctx.font = `800 ${label.length > 24 ? 12 : label.length > 18 ? 14 : 18}px system-ui, sans-serif`;
+        ctx.fillText(label, W / 2, startY + i * 48 + 25);
       });
     }
 
