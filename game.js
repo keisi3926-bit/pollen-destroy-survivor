@@ -54,6 +54,12 @@
     "menu_decide",
     "menu_cancel",
     "graze",
+    "countdown_tick",
+    "time_up",
+    "spell_success",
+    "spell_failed",
+    "bonus_release",
+    "point_item",
   ];
   const SE_COOLDOWNS = {
     item_p_small: 45,
@@ -83,7 +89,7 @@
     scorePerGraze: 50,
     milestones: [100, 500, 1000],
   };
-  const APP_VERSION = "0.20.0";
+  const APP_VERSION = "0.21.0";
   const INITIAL_CONTINUES = 3;
   const CHECKPOINTS = [
     { id: 0, name: "STAGE START", time: 0 },
@@ -659,6 +665,7 @@
       game.playerSpellCount = 3;
       game.power.loseOnMiss();
       game.missedDuringCard = true;
+      if (game.boss?.currentCard?.survival) game.boss.currentCard.failed = true;
       game.state.shake = 18;
       this.invincible = 130;
       game.cancelEnemyBullets(true);
@@ -731,11 +738,16 @@
   }
 
   class CollectibleItem {
-    constructor(x, y, radius, fallSpeed) {
+    constructor(x, y, radius, fallSpeed, options = {}) {
       this.x = x;
       this.y = y;
       this.r = radius;
       this.fallSpeed = fallSpeed;
+      this.vx = options.vx ?? 0;
+      this.vy = options.vy ?? fallSpeed;
+      this.gravity = options.gravity ?? 0;
+      this.drag = options.drag ?? 1;
+      this.autoCollectAt = options.autoCollectAt ?? 0;
       this.age = 0;
       this.collected = false;
       this.active = true;
@@ -744,7 +756,7 @@
 
     update(player) {
       this.age += 1;
-      if (player.y <= H * 0.2) this.autoCollect = true;
+      if (player.y <= H * 0.2 || (this.autoCollectAt > 0 && this.age >= this.autoCollectAt)) this.autoCollect = true;
       if (this.autoCollect) {
         const target = player.hitPoint;
         const angle = Math.atan2(target.y - this.y, target.x - this.x);
@@ -752,7 +764,10 @@
         this.x += Math.cos(angle) * speed;
         this.y += Math.sin(angle) * speed;
       } else {
-        this.y += this.fallSpeed;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vx *= this.drag;
+        this.vy += this.gravity;
       }
     }
 
@@ -762,8 +777,8 @@
   }
 
   class PowerItem extends CollectibleItem {
-    constructor(x, y, amount = 1) {
-      super(x, y, amount >= 5 ? 13 : 9, amount >= 5 ? 1.05 : 1.3);
+    constructor(x, y, amount = 1, options = {}) {
+      super(x, y, amount >= 5 ? 13 : 9, amount >= 5 ? 1.05 : 1.3, options);
       this.amount = amount;
     }
 
@@ -790,8 +805,8 @@
   }
 
   class PointItem extends CollectibleItem {
-    constructor(x, y, scoreValue) {
-      super(x, y, scoreValue >= 1200 ? 12 : 9, scoreValue >= 1200 ? 0.95 : 1.2);
+    constructor(x, y, scoreValue, options = {}) {
+      super(x, y, scoreValue >= 1200 ? 12 : 9, scoreValue >= 1200 ? 0.95 : 1.2, options);
       this.scoreValue = scoreValue;
     }
 
@@ -1086,6 +1101,8 @@
       this.survival = survival;
       this.frenzy = false;
       this.frenzyAnnounced = false;
+      this.failed = false;
+      this.lastCountdownSecond = null;
       this.onStart = onStart;
       this.onUpdate = onUpdate;
       this.onEnd = onEnd;
@@ -1097,6 +1114,8 @@
       this.hp = this.maxHp;
       this.frenzy = false;
       this.frenzyAnnounced = false;
+      this.failed = false;
+      this.lastCountdownSecond = null;
       if (this.onStart) this.onStart(boss, game, this);
     }
 
@@ -1107,6 +1126,13 @@
         this.frenzyAnnounced = true;
         game.state.showMessage("発狂モード - LAST 10 SEC", 150);
         game.state.shake = Math.max(game.state.shake, 10);
+      }
+      if (this.survival) {
+        const seconds = Math.ceil(Math.max(0, this.duration - this.age) / 60);
+        if (seconds >= 1 && seconds <= 5 && seconds !== this.lastCountdownSecond) {
+          this.lastCountdownSecond = seconds;
+          game.audio.playSE("countdown_tick", { cooldown: 35, maxVoices: 1 });
+        }
       }
       if (this.pattern && BOSS_PATTERNS[this.pattern]) BOSS_PATTERNS[this.pattern](boss, game, this);
       if (this.onUpdate) this.onUpdate(boss, game, this);
@@ -1250,6 +1276,7 @@
       this.entered = false;
       this.dialogueStarted = false;
       this.defeated = false;
+      this.transitioning = false;
       this.name = DIALOGUE_CONTEXT.bossName;
       this.spellCards = this.createSpellCards();
       this.cardIndex = 0;
@@ -1284,12 +1311,18 @@
       }
 
       this.x = W / 2 + Math.sin(this.age * 0.018) * 78;
-      if (!this.currentCard || this.defeated) return;
+      if (!this.currentCard || this.defeated || this.transitioning) return;
       this.attackAge = this.currentCard.age;
       this.currentCard.update(this, game);
       this.hp = this.currentCard.hp;
       this.maxHp = this.currentCard.maxHp;
-      if ((!this.currentCard.survival && this.currentCard.hp <= 0) || this.currentCard.age >= this.currentCard.duration) this.nextCard(game);
+      if (this.currentCard.survival && this.currentCard.age >= this.currentCard.duration) {
+        this.nextCard(game, "survival-timeout");
+      } else if (!this.currentCard.survival && this.currentCard.hp <= 0) {
+        this.nextCard(game, "hp-break");
+      } else if (!this.currentCard.survival && this.currentCard.age >= this.currentCard.duration) {
+        this.nextCard(game, "phase-timeout");
+      }
     }
 
     createSpellCards() {
@@ -1314,15 +1347,37 @@
       }
     }
 
-    nextCard(game) {
+    nextCard(game, reason = this.currentCard?.survival ? "survival-timeout" : "hp-break") {
       if (!this.currentCard) return;
-      addScore(game, this.currentCard.isSpell ? SCORE_VALUES.spellBreak : SCORE_VALUES.normalBreak);
-      if (!game.missedDuringCard) addScore(game, SCORE_VALUES.noMissBreak);
+      const clearedCard = this.currentCard;
+      const hpBreak = reason === "hp-break";
+      const survivalEnd = reason === "survival-timeout";
+      const survivalSuccess = survivalEnd && !clearedCard.failed;
+
+      if (survivalEnd) game.audio.playSE("time_up", { maxVoices: 1 });
+
+      if (hpBreak) {
+        addScore(game, clearedCard.isSpell ? SCORE_VALUES.spellBreak : SCORE_VALUES.normalBreak);
+        if (!game.missedDuringCard) addScore(game, SCORE_VALUES.noMissBreak);
+        game.state.showMessage(clearedCard.isSpell ? "神威突破！ BONUS!" : "BONUS!", 100);
+        game.spawnBossPhaseBonus(this.x, this.y);
+      } else if (survivalSuccess) {
+        addScore(game, SCORE_VALUES.spellBreak + SCORE_VALUES.noMissBreak);
+        game.state.showMessage("SUCCESS　神威突破！", 120);
+        game.audio.playSE("spell_success", { maxVoices: 1 });
+        game.spawnBossPhaseBonus(this.x, this.y);
+      } else if (survivalEnd) {
+        game.state.showMessage("FAILED　NO BONUS", 65);
+        game.audio.playSE("spell_failed", { maxVoices: 1 });
+      }
+
       game.missedDuringCard = false;
-      this.currentCard.end(this, game);
+      clearedCard.end(this, game);
       this.cardIndex += 1;
       if (this.cardIndex >= this.spellCards.length) {
-        game.defeatBoss();
+        this.enemyClearOnCardChange(game);
+        this.transitioning = true;
+        game.pendingBossDefeat = survivalSuccess ? 185 : 70;
         return;
       }
       this.beginCurrentCard(game);
@@ -1334,7 +1389,7 @@
       this.currentCard.hp -= amount;
       this.hp = this.currentCard.hp;
       addScore(game, amount * SCORE_VALUES.bossDamage);
-      if (this.currentCard.hp <= 0) this.nextCard(game);
+      if (this.currentCard.hp <= 0) this.nextCard(game, "hp-break");
     }
 
     enemyClearOnCardChange(game) {
@@ -2031,6 +2086,7 @@
       this.continuesLeft = INITIAL_CONTINUES;
       this.continueCount = 0;
       this.missedDuringCard = false;
+      this.pendingBossDefeat = 0;
       this.spawnedWaves = new Set();
       this.currentWave = 0;
       this.debugVisible = false;
@@ -2107,6 +2163,7 @@
       this.grazeMilestoneIndex = keepScore ? this.grazeMilestoneIndex : 0;
       this.grazeFlash = 0;
       this.missedDuringCard = false;
+      this.pendingBossDefeat = 0;
       this.spawnedWaves = new Set(
         STAGE_WAVES.map((wave, index) => ({ wave, index })).filter(({ wave }) => wave.time <= startTime).map(({ index }) => index)
       );
@@ -2758,6 +2815,10 @@
       if (this.boss) this.boss.update(this);
 
       this.resolveCollisions();
+      if (this.pendingBossDefeat > 0) {
+        this.pendingBossDefeat -= 1;
+        if (this.pendingBossDefeat === 0) this.defeatBoss();
+      }
 
       this.enemies = this.enemies.filter((e) => !e.offscreen() && e.hp > 0);
       this.playerBullets = this.playerBullets.filter((b) => !b.offscreen());
@@ -3036,7 +3097,34 @@
       item.active = false;
       addScore(this, item.scoreValue);
       this.spawnBurst(item.x, item.y, "#d58cff", 10);
+      this.audio.playSE("point_item", { cooldown: 45, maxVoices: 3 });
       return true;
+    }
+
+    spawnBossPhaseBonus(x, y) {
+      const powerCount = 8;
+      const pointCount = 16;
+      const total = powerCount + pointCount;
+      for (let i = 0; i < total; i += 1) {
+        const angle = (i / total) * TAU + Math.random() * 0.14;
+        const speed = 1.7 + Math.random() * 1.8;
+        const options = {
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 1.65,
+          gravity: 0.045,
+          drag: 0.992,
+          autoCollectAt: 92 + Math.floor(Math.random() * 24),
+        };
+        if (i < powerCount) {
+          const amount = i === 0 ? POWER_CONFIG.largePValue : POWER_CONFIG.smallPValue;
+          this.powerItems.push(new PowerItem(x, y, amount, options));
+        } else {
+          this.pointItems.push(new PointItem(x, y, i % 5 === 0 ? 1200 : 500, options));
+        }
+      }
+      this.spawnBurst(x, y, "#fff0a2", 42);
+      this.state.shake = Math.max(this.state.shake, 7);
+      this.audio.playSE("bonus_release", { maxVoices: 1 });
     }
 
     destroyEnemy(enemy) {

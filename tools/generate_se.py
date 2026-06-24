@@ -202,8 +202,44 @@ def generate_all() -> None:
         lambda t, d: 0.62 * chirp(1180, 1850, t, d) + 0.22 * sine(2360, t) + 0.1 * sparkle(t, 40),
         peak=0.48,
     )
+    render(
+        "countdown_tick.wav",
+        0.13,
+        lambda t, d: 0.74 * sine(880, t) + 0.22 * sine(1760, t),
+        peak=0.54,
+    )
+    render(
+        "time_up.wav",
+        0.55,
+        lambda t, d: 0.58 * chirp(520, 150, t, d) + 0.26 * sine(92, t) * math.exp(-5 * t),
+        peak=0.66,
+    )
+    render(
+        "spell_success.wav",
+        0.78,
+        lambda t, d: 0.48 * chirp(420, 1380, t, d) + 0.28 * sine(1680, t) + 0.18 * sparkle(t, 30),
+        peak=0.68,
+    )
+    render(
+        "spell_failed.wav",
+        0.62,
+        lambda t, d: 0.55 * chirp(410, 105, t, d) + 0.28 * sine(78, t) * math.exp(-4 * t),
+        peak=0.62,
+    )
+    render(
+        "bonus_release.wav",
+        0.58,
+        lambda t, d: 0.38 * noise() * math.exp(-3 * t) + 0.42 * chirp(260, 1120, t, d) + 0.2 * sparkle(t, 36),
+        peak=0.68,
+    )
+    render(
+        "point_item.wav",
+        0.12,
+        lambda t, d: 0.66 * chirp(720, 1060, t, d) + 0.18 * sine(1440, t),
+        peak=0.46,
+    )
 
 
 if __name__ == "__main__":
     generate_all()
-    print(f"Generated 20 sound effects in {OUTPUT_DIR}")
+    print(f"Generated 26 sound effects in {OUTPUT_DIR}")

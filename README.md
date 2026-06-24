@@ -167,4 +167,4 @@ python -m http.server 8000
 python tools/generate_se.py
 ```
 
-実行すると `assets/audio/se/` の20種類のWAVファイルを再生成します。
+実行すると `assets/audio/se/` の26種類のWAVファイルを再生成します。
