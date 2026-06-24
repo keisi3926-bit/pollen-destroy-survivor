@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
   "use strict";
 
   const canvas = document.getElementById("gameCanvas");
@@ -53,6 +53,7 @@
     "menu_move",
     "menu_decide",
     "menu_cancel",
+    "graze",
   ];
   const SE_COOLDOWNS = {
     item_p_small: 45,
@@ -68,7 +69,21 @@
   const SUGINOMIKOTO_CUTIN_ASSET = "assets/cutin/suginomikoto_divine_attack.png";
   const PLAYER_CUTIN_FRAMES = 82;
   const BOSS_CUTIN_FRAMES = 74;
-  const APP_VERSION = "0.19.0";
+  const MOBILE_CONTROLS = {
+    moveRegionStart: 0.45,
+    joystickRadius: 42,
+    knobRadius: 19,
+  };
+  const DIALOGUE_CONTEXT = {
+    playerName: "寿立覇王",
+    bossName: "スギノミコト",
+  };
+  const GRAZE_CONFIG = {
+    radius: 27,
+    scorePerGraze: 50,
+    milestones: [100, 500, 1000],
+  };
+  const APP_VERSION = "0.20.0";
   const INITIAL_CONTINUES = 3;
   const CHECKPOINTS = [
     { id: 0, name: "STAGE START", time: 0 },
@@ -278,45 +293,45 @@
   // portrait に画像名を指定すると assets/characters/ から読み込み、無ければ自動でプレースホルダー表示になる。
   const DIALOGUE_SCENES = {
     scene_intro: [
-      { speaker: "PLAYER", text: "春。参道には、今年も黄色い霧が降りた。", portrait: "player.png", side: "left" },
-      { speaker: "PLAYER", text: "鼻を守る者は、もういない。", portrait: "player.png", side: "left" },
-      { speaker: "PLAYER", text: "ならば行く。スリッパで。", portrait: "player.png", side: "left" },
+      { speaker: "player", text: "春。参道には、今年も黄色い霧が降りた。", portrait: "player.png", side: "left" },
+      { speaker: "player", text: "鼻を守る者は、もういない。", portrait: "player.png", side: "left" },
+      { speaker: "player", text: "ならば行く。スリッパで。", portrait: "player.png", side: "left" },
     ],
     scene_boss: [
-      { speaker: "PLAYER", text: "今年も来たか……", portrait: "player.png", side: "left" },
-      { speaker: "PLAYER", text: "春の元凶。", portrait: "player.png", side: "left" },
-      { speaker: "PLAYER", text: "全部叩く。", portrait: "player.png", side: "left" },
-      { speaker: "スギノミコト", text: "愚かな人間よ。", portrait: "suginomikoto.png", side: "right" },
-      { speaker: "スギノミコト", text: "花粉は生命の営み。", portrait: "suginomikoto.png", side: "right" },
-      { speaker: "スギノミコト", text: "我らを滅ぼせば春は来ぬ。", portrait: "suginomikoto.png", side: "right" },
-      { speaker: "PLAYER", text: "いや。", portrait: "player.png", side: "left" },
-      { speaker: "PLAYER", text: "鼻水は止める。", portrait: "player.png", side: "left" },
-      { speaker: "スギノミコト", text: "ならば試してみよ。", portrait: "suginomikoto.png", side: "right" },
-      { speaker: "スギノミコト", text: "神威――", portrait: "suginomikoto.png", side: "right" },
-      { speaker: "スギノミコト", text: "無限飛散。", portrait: "suginomikoto.png", side: "right" },
-      { speaker: "PLAYER", text: "……来るか。", portrait: "player.png", side: "left" },
-      { speaker: "スギノミコト", text: "これは神事。", portrait: "suginomikoto.png", side: "right" },
-      { speaker: "スギノミコト", text: "花粉は祈り。", portrait: "suginomikoto.png", side: "right" },
-      { speaker: "スギノミコト", text: "散ることこそ、春の証。", portrait: "suginomikoto.png", side: "right" },
-      { speaker: "PLAYER", text: "知るか。", portrait: "player.png", side: "left" },
-      { speaker: "PLAYER", text: "こっちは鼻が限界なんだよ。", portrait: "player.png", side: "left" },
-      { speaker: "スギノミコト", text: "ならば受けよ。", portrait: "suginomikoto.png", side: "right" },
-      { speaker: "スギノミコト", text: "神威『黄塵円舞』", portrait: "suginomikoto.png", side: "right" },
-      { speaker: "PLAYER", text: "上等だ。", portrait: "player.png", side: "left" },
-      { speaker: "PLAYER", text: "極履技『スリッパ・ノヴァ』で叩き落とす。", portrait: "player.png", side: "left" },
+      { speaker: "player", text: "今年も来たか……", portrait: "player.png", side: "left" },
+      { speaker: "player", text: "春の元凶。", portrait: "player.png", side: "left" },
+      { speaker: "player", text: "全部叩く。", portrait: "player.png", side: "left" },
+      { speaker: "boss", text: "愚かな人間よ。", portrait: "suginomikoto.png", side: "right" },
+      { speaker: "boss", text: "花粉は生命の営み。", portrait: "suginomikoto.png", side: "right" },
+      { speaker: "boss", text: "我らを滅ぼせば春は来ぬ。", portrait: "suginomikoto.png", side: "right" },
+      { speaker: "player", text: "いや。", portrait: "player.png", side: "left" },
+      { speaker: "player", text: "鼻水は止める。", portrait: "player.png", side: "left" },
+      { speaker: "boss", text: "ならば試してみよ。", portrait: "suginomikoto.png", side: "right" },
+      { speaker: "boss", text: "神威――", portrait: "suginomikoto.png", side: "right" },
+      { speaker: "boss", text: "無限飛散。", portrait: "suginomikoto.png", side: "right" },
+      { speaker: "player", text: "……来るか。", portrait: "player.png", side: "left" },
+      { speaker: "boss", text: "これは神事。", portrait: "suginomikoto.png", side: "right" },
+      { speaker: "boss", text: "花粉は祈り。", portrait: "suginomikoto.png", side: "right" },
+      { speaker: "boss", text: "散ることこそ、春の証。", portrait: "suginomikoto.png", side: "right" },
+      { speaker: "player", text: "知るか。", portrait: "player.png", side: "left" },
+      { speaker: "player", text: "こっちは鼻が限界なんだよ。", portrait: "player.png", side: "left" },
+      { speaker: "boss", text: "ならば受けよ。", portrait: "suginomikoto.png", side: "right" },
+      { speaker: "boss", text: "神威『黄塵円舞』", portrait: "suginomikoto.png", side: "right" },
+      { speaker: "player", text: "上等だ。", portrait: "player.png", side: "left" },
+      { speaker: "player", text: "極履技『スリッパ・ノヴァ』で叩き落とす。", portrait: "player.png", side: "left" },
     ],
     scene_clear: [
-      { speaker: "スギノミコト", text: "見事だ……", portrait: "suginomikoto.png", side: "right" },
-      { speaker: "スギノミコト", text: "だが春は終わらぬ。", portrait: "suginomikoto.png", side: "right" },
-      { speaker: "PLAYER", text: "来年も。", portrait: "player.png", side: "left" },
-      { speaker: "PLAYER", text: "叩く。", portrait: "player.png", side: "left" },
-      { speaker: "スギノミコト", text: "また会おう……", portrait: "suginomikoto.png", side: "right" },
+      { speaker: "boss", text: "見事だ……", portrait: "suginomikoto.png", side: "right" },
+      { speaker: "boss", text: "だが春は終わらぬ。", portrait: "suginomikoto.png", side: "right" },
+      { speaker: "player", text: "来年も。", portrait: "player.png", side: "left" },
+      { speaker: "player", text: "叩く。", portrait: "player.png", side: "left" },
+      { speaker: "boss", text: "また会おう……", portrait: "suginomikoto.png", side: "right" },
     ],
     scene_ending: [
-      { speaker: "STAGE1 CLEAR", text: "花粉滅殺完了", portrait: "player.png", side: "left" },
-      { speaker: "PLAYER", text: "まだ終わりじゃない。", portrait: "player.png", side: "left" },
-      { speaker: "PLAYER", text: "次の敵が待っている。", portrait: "player.png", side: "left" },
-      { speaker: "TO BE CONTINUED", text: "King of Slipper 外伝は続く。", portrait: "player.png", side: "left" },
+      { speaker: "system", text: "花粉滅殺完了", portrait: "player.png", side: "left" },
+      { speaker: "player", text: "まだ終わりじゃない。", portrait: "player.png", side: "left" },
+      { speaker: "player", text: "次の敵が待っている。", portrait: "player.png", side: "left" },
+      { speaker: "system", text: "King of Slipper 外伝は続く。", portrait: "player.png", side: "left" },
     ],
   };
 
@@ -863,6 +878,7 @@
       this.phase = extra.phase || 0;
       this.damage = extra.damage || 1;
       this.shape = extra.shape || "orb";
+      this.grazed = false;
     }
 
     update() {
@@ -1060,13 +1076,16 @@
   }
 
   class SpellCard {
-    constructor({ name, duration, hp, pattern, type = "spell", onStart = null, onUpdate = null, onEnd = null }) {
+    constructor({ name, duration, hp, pattern, type = "spell", survival = false, onStart = null, onUpdate = null, onEnd = null }) {
       this.name = name;
       this.duration = duration;
       this.hp = hp;
       this.maxHp = hp;
       this.pattern = pattern;
       this.type = type;
+      this.survival = survival;
+      this.frenzy = false;
+      this.frenzyAnnounced = false;
       this.onStart = onStart;
       this.onUpdate = onUpdate;
       this.onEnd = onEnd;
@@ -1076,11 +1095,19 @@
     start(boss, game) {
       this.age = 0;
       this.hp = this.maxHp;
+      this.frenzy = false;
+      this.frenzyAnnounced = false;
       if (this.onStart) this.onStart(boss, game, this);
     }
 
     update(boss, game) {
       this.age += 1;
+      this.frenzy = this.survival && this.duration - this.age <= 600;
+      if (this.frenzy && !this.frenzyAnnounced) {
+        this.frenzyAnnounced = true;
+        game.state.showMessage("発狂モード - LAST 10 SEC", 150);
+        game.state.shake = Math.max(game.state.shake, 10);
+      }
       if (this.pattern && BOSS_PATTERNS[this.pattern]) BOSS_PATTERNS[this.pattern](boss, game, this);
       if (this.onUpdate) this.onUpdate(boss, game, this);
     }
@@ -1183,6 +1210,24 @@
       BOSS_PATTERNS.yellowDance(boss, game, card);
       BOSS_PATTERNS.wavePollen(boss, game, card);
       BOSS_PATTERNS.needleRain(boss, game, card);
+      if (card.frenzy && card.age % game.difficulty.scaleFireInterval(72) === 1) {
+        const playerHit = game.player.hitPoint;
+        const base = Math.atan2(playerHit.y - boss.y, playerHit.x - boss.x);
+        const count = game.difficulty.current === "easy" ? 3 : 5;
+        for (let i = 0; i < count; i += 1) {
+          const offset = (i - (count - 1) / 2) * 0.13;
+          const speed = game.difficulty.scaleSpeed(1.65 + (i % 2) * 0.16);
+          game.spawnEnemyBullet(new Bullet(
+            boss.x,
+            boss.y + 12,
+            Math.cos(base + offset) * speed,
+            Math.sin(base + offset) * speed,
+            5,
+            "enemy",
+            "#ff6d4a"
+          ));
+        }
+      }
     },
   };
 
@@ -1205,7 +1250,7 @@
       this.entered = false;
       this.dialogueStarted = false;
       this.defeated = false;
-      this.name = "スギノミコト";
+      this.name = DIALOGUE_CONTEXT.bossName;
       this.spellCards = this.createSpellCards();
       this.cardIndex = 0;
       this.currentCard = this.spellCards[0];
@@ -1244,18 +1289,14 @@
       this.currentCard.update(this, game);
       this.hp = this.currentCard.hp;
       this.maxHp = this.currentCard.maxHp;
-      if (this.currentCard.hp <= 0 || this.currentCard.age >= this.currentCard.duration) this.nextCard(game);
+      if ((!this.currentCard.survival && this.currentCard.hp <= 0) || this.currentCard.age >= this.currentCard.duration) this.nextCard(game);
     }
 
     createSpellCards() {
       return [
-        new SpellCard({ name: "通常攻撃1", duration: 520, hp: 240, pattern: "normalSpread", type: "normal" }),
-        new SpellCard({ name: "神威「黄塵円舞」", duration: 620, hp: 250, pattern: "yellowDance" }),
-        new SpellCard({ name: "通常攻撃2", duration: 460, hp: 220, pattern: "aimedPollen", type: "normal" }),
-        new SpellCard({ name: "神威「針葉雨」", duration: 620, hp: 260, pattern: "needleRain" }),
-        new SpellCard({ name: "通常攻撃3", duration: 500, hp: 230, pattern: "wavePollen", type: "normal" }),
-        new SpellCard({ name: "神木神威「杉並木封鎖」", duration: 620, hp: 260, pattern: "cedarBlockade" }),
-        new SpellCard({ name: "大神威「無限飛散」", duration: 820, hp: 360, pattern: "infiniteScatter" }),
+        new SpellCard({ name: "Phase 1 通常弾幕", duration: 720, hp: 360, pattern: "normalSpread", type: "normal" }),
+        new SpellCard({ name: "神威「黄塵円舞」", duration: 900, hp: 430, pattern: "yellowDance" }),
+        new SpellCard({ name: "大神威「無限飛散」", duration: 1800, hp: 1, pattern: "infiniteScatter", survival: true }),
       ];
     }
 
@@ -1289,6 +1330,7 @@
 
     takeDamage(game, amount) {
       if (!this.currentCard || this.defeated || !this.entered) return;
+      if (this.currentCard.survival) return;
       this.currentCard.hp -= amount;
       this.hp = this.currentCard.hp;
       addScore(game, amount * SCORE_VALUES.bossDamage);
@@ -1399,9 +1441,10 @@
   }
 
   class DialogueManager {
-    constructor(scenes, portraitBase) {
+    constructor(scenes, portraitBase, dialogueContext) {
       this.scenes = scenes;
       this.portraitBase = portraitBase;
+      this.dialogueContext = dialogueContext;
       this.cache = new Map();
       this.active = false;
       this.sceneName = "";
@@ -1468,6 +1511,13 @@
 
     currentLine() {
       return this.lines[this.index] || null;
+    }
+
+    resolveSpeaker(speaker) {
+      if (speaker === "player") return this.dialogueContext.playerName;
+      if (speaker === "boss") return this.dialogueContext.bossName;
+      if (speaker === "system") return "";
+      return speaker || "";
     }
 
     advance() {
@@ -1537,7 +1587,7 @@
       const isActive = activeLine.side === side;
       const portraitLine = isActive ? activeLine : this.resolvePortraitLine(side);
       const fileName = portraitLine?.portrait || null;
-      const speaker = portraitLine?.speaker || (side === "left" ? "PLAYER" : "BOSS");
+      const speaker = this.resolveSpeaker(portraitLine?.speaker) || (side === "left" ? this.dialogueContext.playerName : this.dialogueContext.bossName);
       const record = this.getPortrait(fileName);
       const w = 156;
       const h = 300;
@@ -1595,7 +1645,7 @@
       ctx.fillStyle = "#fff4b8";
       ctx.font = "800 18px system-ui, sans-serif";
       ctx.textAlign = "left";
-      ctx.fillText(line.speaker || "", pad + 14, y + 42);
+      ctx.fillText(this.resolveSpeaker(line.speaker), pad + 14, y + 42);
 
       ctx.fillStyle = "#f7fff0";
       ctx.font = "22px system-ui, sans-serif";
@@ -1975,6 +2025,9 @@
       this.bossCutinBellPlayed = false;
       this.bossCutinReleasePlayed = false;
       this.powerUpFlash = 0;
+      this.grazeCount = 0;
+      this.grazeMilestoneIndex = 0;
+      this.grazeFlash = 0;
       this.continuesLeft = INITIAL_CONTINUES;
       this.continueCount = 0;
       this.missedDuringCard = false;
@@ -1986,7 +2039,7 @@
       this.spellKeyHeld = false;
       this.spellPointerHeld = false;
       this.titlePanel = "main";
-      this.dialogue = new DialogueManager(DIALOGUE_SCENES, PORTRAIT_BASE);
+      this.dialogue = new DialogueManager(DIALOGUE_SCENES, PORTRAIT_BASE, DIALOGUE_CONTEXT);
       this.lastTime = 0;
       this.input = {
         left: false,
@@ -2005,6 +2058,8 @@
         mouseActive: false,
         touchX: W / 2,
         touchY: H - 90,
+        joystickOriginX: W * 0.78,
+        joystickOriginY: H * 0.78,
       };
       this.gamepad = {
         index: null,
@@ -2036,6 +2091,7 @@
       this.lasers = [];
       this.boss = null;
       this.playerSpellCount = keepScore ? preservedSpellCount : 3;
+      spellButton.disabled = this.playerSpellCount <= 0;
       this.playerSpellTimer = 0;
       this.playerSpellCutin = 0;
       this.bossSpellCutin = 0;
@@ -2047,6 +2103,9 @@
       this.bossCutinBellPlayed = false;
       this.bossCutinReleasePlayed = false;
       this.powerUpFlash = 0;
+      this.grazeCount = keepScore ? this.grazeCount : 0;
+      this.grazeMilestoneIndex = keepScore ? this.grazeMilestoneIndex : 0;
+      this.grazeFlash = 0;
       this.missedDuringCard = false;
       this.spawnedWaves = new Set(
         STAGE_WAVES.map((wave, index) => ({ wave, index })).filter(({ wave }) => wave.time <= startTime).map(({ index }) => index)
@@ -2184,7 +2243,11 @@
           this.input.mouseActive = true;
           this.input.fire = true;
         } else {
+          const pos = this.canvasPoint(e);
+          if (pos.x < W * MOBILE_CONTROLS.moveRegionStart) return;
           this.input.touchActive = true;
+          this.input.joystickOriginX = pos.x;
+          this.input.joystickOriginY = pos.y;
         }
         this.setTouch(e);
         canvas.setPointerCapture(e.pointerId);
@@ -2650,9 +2713,11 @@
       this.state.messageTimer = Math.max(0, this.state.messageTimer - 1);
       this.state.bossNameTimer = Math.max(0, this.state.bossNameTimer - 1);
       this.powerUpFlash = Math.max(0, this.powerUpFlash - 1);
+      this.grazeFlash = Math.max(0, this.grazeFlash - 1);
     }
 
     updateStage() {
+      spellButton.disabled = this.playerSpellCount <= 0;
       this.state.time += 1;
       this.checkpoints.updateByTime(this.state.time);
       this.enemyBulletsSpawnedFrame = 0;
@@ -2898,9 +2963,14 @@
       }
 
       for (const b of this.enemyBullets) {
-        if (dist2(b, this.player.hitPoint) < (b.r + this.player.r) ** 2) {
+        const hitDistance = b.r + this.player.r;
+        const distanceSquared = dist2(b, this.player.hitPoint);
+        if (distanceSquared < hitDistance ** 2) {
           b.y = H + 100;
           this.player.hit(this);
+        } else if (!b.grazed && distanceSquared < (b.r + GRAZE_CONFIG.radius) ** 2) {
+          b.grazed = true;
+          this.registerGraze(b);
         }
       }
 
@@ -2999,6 +3069,24 @@
       for (let i = 0; i < count; i += 1) this.particles.push(new Particle(x, y, color));
     }
 
+    registerGraze(bullet) {
+      this.grazeCount += 1;
+      this.grazeFlash = 24;
+      addScore(this, GRAZE_CONFIG.scorePerGraze);
+      this.spawnBurst(bullet.x, bullet.y, "#e7c8ff", 5);
+      this.audio.playSE("graze", { cooldown: 55, maxVoices: 2 });
+
+      while (
+        this.grazeMilestoneIndex < GRAZE_CONFIG.milestones.length
+        && this.grazeCount >= GRAZE_CONFIG.milestones[this.grazeMilestoneIndex]
+      ) {
+        const milestone = GRAZE_CONFIG.milestones[this.grazeMilestoneIndex];
+        addScore(this, milestone * 50);
+        this.state.showMessage(`GRAZE ${milestone} BONUS！`, 120);
+        this.grazeMilestoneIndex += 1;
+      }
+    }
+
     cancelEnemyBullets(score = false) {
       if (score) addScore(this, this.enemyBullets.length * SCORE_VALUES.bulletCancel);
       this.enemyBullets = [];
@@ -3055,8 +3143,14 @@
       this.enemyBullets.forEach((b) => b.draw(ctx));
       this.particles.forEach((p) => p.draw(ctx));
       if (this.state.mode === "stage") {
+        this.drawMobileJoystick();
         this.followers.forEach((follower) => follower.draw(ctx, this.state.time));
         this.player.draw(ctx, this.state.time);
+      }
+
+      if (this.boss?.currentCard?.frenzy) {
+        ctx.fillStyle = `rgba(130, 0, 0, ${0.07 + Math.sin(this.state.time * 0.12) * 0.025})`;
+        ctx.fillRect(0, 0, W, H);
       }
 
       ctx.restore();
@@ -3083,6 +3177,30 @@
       ctx.font = `900 ${maxFrames === 38 ? 38 : 30}px system-ui, sans-serif`;
       ctx.textAlign = "center";
       ctx.fillText(maxFrames === 38 ? "POWER MAX!" : "POWER UP!", W / 2, H * 0.42);
+      ctx.restore();
+    }
+
+    drawMobileJoystick() {
+      if (!this.input.touchActive) return;
+      const dx = this.input.touchX - this.input.joystickOriginX;
+      const dy = this.input.touchY - this.input.joystickOriginY;
+      const length = Math.hypot(dx, dy) || 1;
+      const maxDistance = MOBILE_CONTROLS.joystickRadius - MOBILE_CONTROLS.knobRadius;
+      const scale = Math.min(1, maxDistance / length);
+      const knobX = this.input.joystickOriginX + dx * scale;
+      const knobY = this.input.joystickOriginY + dy * scale;
+      ctx.save();
+      ctx.fillStyle = "rgba(9, 24, 21, 0.38)";
+      ctx.strokeStyle = "rgba(218, 255, 244, 0.55)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(this.input.joystickOriginX, this.input.joystickOriginY, MOBILE_CONTROLS.joystickRadius, 0, TAU);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "rgba(123, 231, 255, 0.62)";
+      ctx.beginPath();
+      ctx.arc(knobX, knobY, MOBILE_CONTROLS.knobRadius, 0, TAU);
+      ctx.fill();
       ctx.restore();
     }
 
@@ -3333,6 +3451,8 @@
       ctx.fillText(`履技 x ${this.playerSpellCount}`, 12, 55);
       ctx.textAlign = "right";
       ctx.fillText(`CP ${this.checkpoints.current}  CONT ${this.continueCount}`, W - 12, 55);
+      ctx.fillStyle = "#e8c8ff";
+      ctx.fillText(`GRAZE ${this.grazeCount}`, W - 12, 74);
 
       const powerBarX = 12;
       const powerBarY = 64;
@@ -3355,10 +3475,21 @@
       ctx.fillText(`${powerStageLabel}  ${this.power.label}`, powerBarX + powerBarW / 2, powerBarY + 12);
 
       if (this.boss && this.boss.entered && this.state.mode === "stage") {
-        ctx.fillStyle = "rgba(10, 25, 17, 0.72)";
-        ctx.fillRect(54, 45, W - 108, 10);
-        ctx.fillStyle = "#85f06e";
-        ctx.fillRect(54, 45, (W - 108) * Math.max(0, this.boss.hp / this.boss.maxHp), 10);
+        const phaseColors = ["#75df6b", "#ffad45", "#ef4f4f"];
+        const gap = 5;
+        const totalWidth = W - 108;
+        const segmentWidth = (totalWidth - gap * 2) / 3;
+        for (let i = 0; i < 3; i += 1) {
+          const x = 54 + i * (segmentWidth + gap);
+          ctx.fillStyle = "rgba(10, 25, 17, 0.72)";
+          ctx.fillRect(x, 45, segmentWidth, 10);
+          let ratio = i < this.boss.cardIndex ? 0 : i > this.boss.cardIndex ? 1 : Math.max(0, this.boss.hp / this.boss.maxHp);
+          if (this.boss.currentCard?.survival && i === this.boss.cardIndex) {
+            ratio = Math.max(0, (this.boss.currentCard.duration - this.boss.currentCard.age) / this.boss.currentCard.duration);
+          }
+          ctx.fillStyle = phaseColors[i];
+          ctx.fillRect(x, 45, segmentWidth * ratio, 10);
+        }
         if (this.boss.currentCard && this.boss.currentCard.isSpell) {
           const card = this.boss.currentCard;
           const rest = Math.max(0, Math.ceil((card.duration - card.age) / 60));
@@ -3367,7 +3498,7 @@
           ctx.fillStyle = "#fff1a8";
           ctx.font = "800 15px system-ui, sans-serif";
           ctx.textAlign = "center";
-          ctx.fillText(`${card.name}  ${rest}`, W / 2, 108);
+          ctx.fillText(card.survival ? `SURVIVE  ${rest} sec` : `${card.name}  ${rest}`, W / 2, 108);
         }
       }
 
@@ -3382,6 +3513,15 @@
         ctx.fillStyle = "#fff7bd";
         ctx.font = "700 20px system-ui, sans-serif";
         ctx.fillText(this.state.message, W / 2, 124);
+      }
+
+      if (this.grazeFlash > 0) {
+        ctx.globalAlpha = Math.min(1, this.grazeFlash / 10);
+        ctx.fillStyle = "#f0dcff";
+        ctx.font = "900 18px system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("GRAZE +1", this.player.x, this.player.y - 42);
+        ctx.globalAlpha = 1;
       }
 
       if (this.state.bossNameTimer > 0 && this.boss) {

@@ -196,8 +196,14 @@ def generate_all() -> None:
         lambda t, d: 0.68 * chirp(620, 280, t, d) + 0.18 * sine(190, t),
         peak=0.58,
     )
+    render(
+        "graze.wav",
+        0.14,
+        lambda t, d: 0.62 * chirp(1180, 1850, t, d) + 0.22 * sine(2360, t) + 0.1 * sparkle(t, 40),
+        peak=0.48,
+    )
 
 
 if __name__ == "__main__":
     generate_all()
-    print(f"Generated 19 sound effects in {OUTPUT_DIR}")
+    print(f"Generated 20 sound effects in {OUTPUT_DIR}")

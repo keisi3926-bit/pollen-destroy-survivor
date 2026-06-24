@@ -25,10 +25,10 @@ PC:
 
 スマホ:
 
-- 移動: 画面ドラッグ
+- 移動: Canvas右側のドラッグ領域と仮想スティック
 - ショット: 自動
-- 低速移動: 右下の `低速` ボタン
-- 履技: 右下の `履技` ボタン
+- 低速移動: 左下の `LOW SPEED` ボタン
+- 履技: 左中の `SPELL` ボタン
 - ポーズ: 画面上部の `MENU` ボタン
 - 更新情報: スマホでは初期状態で `INFO` に折りたたみ
 
@@ -54,7 +54,7 @@ OPTIONS:
 - 一面道中
 - ボス「スギノミコト」
 - ビジュアルノベル風会話システム
-- PLAYER立ち絵/自機画像 `assets/characters/player.png` 対応
+- 寿立覇王の立ち絵/自機画像 `assets/characters/player.png` 対応
 - スギノミコト立ち絵/ボス画像 `assets/characters/suginomikoto.png` 対応
 - 大・中・小花粉スプライト `assets/enemies/pollen_enemies.png` 対応
 - 背景画像 `assets/backgrounds/stage1_pollen_sando.png` 対応
@@ -69,10 +69,12 @@ OPTIONS:
 - 随履の通常追従、低速固定陣形、同期射撃、スリッパ・ノヴァ連携光線
 - POWER段階に応じた本体ショット本数・太さ・色・威力の強化
 - Pアイテム取得演出、POWERゲージ、取得SE
-- 数式波形から生成した19種類のオリジナルSE
+- グレイズ専用SEを含む20種類のオリジナルSE
 - BGM/SE個別音量、MASTER MUTE、localStorage設定保存
 - PC/Xbox/スマホ対応のタイトルOPTIONS画面
 - ボス神威進行
+- スギノミコト3段階戦、30秒耐久の大神威、残り10秒の発狂モード
+- 敵弾への接近で加算されるグレイズ、累計UI、節目ボーナス
 - 残機制、難易度選択、途中復帰
 - スコア、エクステンド、難易度別ハイスコア保存
 - ポーズメニュー、ゲームオーバーメニュー
@@ -165,4 +167,4 @@ python -m http.server 8000
 python tools/generate_se.py
 ```
 
-実行すると `assets/audio/se/` の19種類のWAVファイルを再生成します。
+実行すると `assets/audio/se/` の20種類のWAVファイルを再生成します。

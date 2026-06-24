@@ -3,6 +3,10 @@
   --panel: #17261d;
   --accent: #7be7ff;
   --gold: #f6d35d;
+  --mobile-control-size: 78px;
+  --mobile-control-left: max(14px, env(safe-area-inset-left));
+  --mobile-control-bottom: max(18px, env(safe-area-inset-bottom));
+  --mobile-control-gap: 94px;
 }
 
 * {
@@ -184,9 +188,9 @@ body {
 .slow-button,
 .spell-button {
   position: fixed;
-  right: max(14px, env(safe-area-inset-right));
-  width: 74px;
-  height: 74px;
+  left: var(--mobile-control-left);
+  width: var(--mobile-control-size);
+  height: var(--mobile-control-size);
   border: 1px solid rgba(255, 255, 255, 0.28);
   border-radius: 50%;
   background: rgba(18, 31, 26, 0.72);
@@ -199,11 +203,11 @@ body {
 }
 
 .slow-button {
-  bottom: max(16px, env(safe-area-inset-bottom));
+  bottom: var(--mobile-control-bottom);
 }
 
 .spell-button {
-  bottom: calc(max(16px, env(safe-area-inset-bottom)) + 86px);
+  bottom: calc(var(--mobile-control-bottom) + var(--mobile-control-gap));
   color: #fff6d5;
   background: rgba(55, 31, 18, 0.76);
   font-size: 13px;
@@ -218,6 +222,11 @@ body {
 .spell-button:active {
   color: #221606;
   background: var(--gold);
+}
+
+.spell-button:disabled {
+  opacity: 0.28;
+  filter: grayscale(1);
 }
 
 .menu-button {
@@ -238,5 +247,25 @@ body {
   .slow-button,
   .spell-button {
     opacity: 0.45;
+  }
+}
+
+@media (max-width: 720px) and (orientation: portrait) {
+  :root {
+    --mobile-control-size: 76px;
+    --mobile-control-left: max(10px, env(safe-area-inset-left));
+    --mobile-control-bottom: max(16px, env(safe-area-inset-bottom));
+    --mobile-control-gap: 90px;
+  }
+
+  .slow-button,
+  .spell-button {
+    z-index: 5;
+    font-size: 11px;
+    opacity: 0.82;
+  }
+
+  .spell-button {
+    bottom: clamp(210px, 38vh, 330px);
   }
 }

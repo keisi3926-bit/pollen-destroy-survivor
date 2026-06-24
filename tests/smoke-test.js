@@ -121,7 +121,7 @@ const sandbox = {
   },
   fetch: async () => ({
     ok: true,
-    json: async () => ({ version: "0.19.0", updates: [] }),
+    json: async () => ({ version: "0.20.0", updates: [] }),
   }),
   caches: { keys: async () => [] },
   requestAnimationFrame() {},
@@ -191,6 +191,23 @@ game.life.lives = 3;
 game.player.invincible = 0;
 game.enemyBullets = [];
 
+game.grazeCount = 0;
+const grazeBullet = {
+  x: game.player.hitPoint.x + 20,
+  y: game.player.hitPoint.y,
+  r: 3,
+  grazed: false,
+};
+game.enemyBullets = [grazeBullet];
+const grazeScoreBefore = game.score.value;
+game.resolveCollisions();
+assert.equal(game.grazeCount, 1, "near miss should add one graze");
+assert.equal(grazeBullet.grazed, true, "same enemy bullet should remember its graze");
+assert.ok(game.score.value > grazeScoreBefore, "graze should add score");
+game.resolveCollisions();
+assert.equal(game.grazeCount, 1, "same enemy bullet must not graze twice");
+game.enemyBullets = [];
+
 const canvas = elements.get("gameCanvas");
 canvas.dispatch("pointermove", {
   pointerType: "mouse",
@@ -200,6 +217,28 @@ canvas.dispatch("pointermove", {
 assert.equal(game.input.mouseActive, true, "mouse movement should enable mouse control");
 assert.equal(game.input.touchX, 330, "mouse movement should update target x");
 assert.equal(game.input.touchY, 500, "mouse movement should update target y");
+
+game.input.touchActive = false;
+canvas.dispatch("pointerdown", {
+  button: 0,
+  pointerType: "touch",
+  pointerId: 7,
+  clientX: 120,
+  clientY: 500,
+  preventDefault() {},
+});
+assert.equal(game.input.touchActive, false, "left side touch should not start movement");
+canvas.dispatch("pointerdown", {
+  button: 0,
+  pointerType: "touch",
+  pointerId: 8,
+  clientX: 340,
+  clientY: 500,
+  preventDefault() {},
+});
+assert.equal(game.input.touchActive, true, "right side touch should start movement");
+assert.equal(game.input.joystickOriginX, 340, "virtual joystick should start at the right thumb position");
+canvas.dispatch("pointerup", { pointerType: "touch" });
 
 let contextPrevented = false;
 canvas.dispatch("contextmenu", {
@@ -345,6 +384,8 @@ assert.equal(game.score.value, pointScoreBefore + pointItem.scoreValue, "point i
 game.dialogue.start("scene_boss");
 assert.equal(game.dialogue.resolvePortraitLine("left").portrait, "player.png");
 assert.equal(game.dialogue.resolvePortraitLine("right").portrait, "suginomikoto.png");
+assert.equal(game.dialogue.resolveSpeaker("player"), "寿立覇王");
+assert.equal(game.dialogue.resolveSpeaker("boss"), "スギノミコト");
 game.enemyBullets = [];
 game.playerSpellCutin = 40;
 game.draw();
@@ -358,6 +399,7 @@ game.state.time = 3420;
 game.spawnStageEnemies();
 assert.ok(game.boss, "boss should spawn at the end of the stage");
 game.boss.entered = true;
+assert.equal(game.boss.spellCards.length, 3, "boss battle should have three phases");
 game.boss.beginCurrentCard(game);
 assert.equal(game.bossSpellCutin, 0, "normal boss attack should not show a cut-in");
 game.boss.currentCard.hp = 0;
@@ -366,6 +408,15 @@ assert.ok(game.bossSpellCutin > 0, "boss spell should start the Suginomikoto cut
 assert.equal(game.bossSpellCutinName, "神威「黄塵円舞」", "boss cut-in should show the current spell name");
 assert.ok(game.getCutinSlideX(74, 74, -1) < 0, "Suginomikoto cut-in should start outside the left edge");
 game.draw();
+game.boss.currentCard.hp = 0;
+game.boss.nextCard(game);
+assert.equal(game.boss.currentCard.survival, true, "third divine attack should be a survival phase");
+const survivalHp = game.boss.currentCard.hp;
+game.boss.takeDamage(game, 999);
+assert.equal(game.boss.currentCard.hp, survivalHp, "survival boss should be invincible");
+game.boss.currentCard.age = game.boss.currentCard.duration - 601;
+game.boss.currentCard.update(game.boss, game);
+assert.equal(game.boss.currentCard.frenzy, true, "last ten seconds should enable frenzy mode");
 while (game.boss && !game.boss.defeated) {
   game.boss.currentCard.hp = 0;
   game.boss.nextCard(game);

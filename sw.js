@@ -1,4 +1,4 @@
-const CACHE_VERSION = "pollen-destroy-slipper-v0.19.0";
+const CACHE_VERSION = "pollen-destroy-slipper-v0.20.0";
 const APP_SHELL = [
   "./",
   "index.html",
@@ -31,7 +31,8 @@ const APP_SHELL = [
   "assets/audio/se/player_hit.wav",
   "assets/audio/se/menu_move.wav",
   "assets/audio/se/menu_decide.wav",
-  "assets/audio/se/menu_cancel.wav"
+  "assets/audio/se/menu_cancel.wav",
+  "assets/audio/se/graze.wav"
 ];
 
 self.addEventListener("install", (event) => {
