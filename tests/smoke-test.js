@@ -312,6 +312,9 @@ assert.equal(game.dialogue.resolvePortraitLine("right").portrait, "suginomikoto.
 game.enemyBullets = [];
 game.playerSpellCutin = 40;
 game.draw();
+assert.ok(game.getCutinSlideX(82, 82, 1) > 0, "Haou cut-in should start outside the right edge");
+assert.equal(game.getCutinSlideX(50, 82, 1), 0, "Haou cut-in should stop in the center");
+assert.ok(game.getCutinSlideX(5, 82, 1) < 0, "Haou cut-in should leave through the left edge");
 game.dialogue.completeNow();
 
 game.state.mode = "stage";
@@ -325,6 +328,7 @@ game.boss.currentCard.hp = 0;
 game.boss.nextCard(game);
 assert.ok(game.bossSpellCutin > 0, "boss spell should start the Suginomikoto cut-in");
 assert.equal(game.bossSpellCutinName, "神威「黄塵円舞」", "boss cut-in should show the current spell name");
+assert.ok(game.getCutinSlideX(74, 74, -1) < 0, "Suginomikoto cut-in should start outside the left edge");
 game.draw();
 while (game.boss && !game.boss.defeated) {
   game.boss.currentCard.hp = 0;

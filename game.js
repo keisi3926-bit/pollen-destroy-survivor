@@ -31,8 +31,10 @@
   const PLAYER_ASSET = "assets/characters/player.png";
   const BOSS_ASSET = "assets/characters/suginomikoto.png";
   const POLLEN_ENEMY_ASSET = "assets/enemies/pollen_enemies.png";
-  const SLIPPER_NOVA_CUTIN_ASSET = "assets/effects/slipper_nova_cutin.jpg";
-  const SUGINOMIKOTO_CUTIN_ASSET = "assets/effects/suginomikoto_cutin.jpg";
+  const SLIPPER_NOVA_CUTIN_ASSET = "assets/cutin/haou_slipper_nova.png";
+  const SUGINOMIKOTO_CUTIN_ASSET = "assets/cutin/suginomikoto_divine_attack.png";
+  const PLAYER_CUTIN_FRAMES = 82;
+  const BOSS_CUTIN_FRAMES = 74;
   const APP_VERSION = "0.18.0";
   const INITIAL_CONTINUES = 3;
   const CHECKPOINTS = [
@@ -2385,7 +2387,7 @@
       if (this.playerSpellCount <= 0 || this.playerSpellActive || this.playerSpellCooldown > 0) return;
       this.playerSpellCount -= 1;
       this.playerSpellTimer = 165;
-      this.playerSpellCutin = 82;
+      this.playerSpellCutin = PLAYER_CUTIN_FRAMES;
       this.playerSpellCooldown = 220;
       this.playerSpellActive = true;
       this.player.invincible = Math.max(this.player.invincible, 180);
@@ -2397,7 +2399,7 @@
     }
 
     startBossSpellCutin(cardName) {
-      this.bossSpellCutin = 74;
+      this.bossSpellCutin = BOSS_CUTIN_FRAMES;
       this.bossSpellCutinName = cardName;
     }
 
@@ -2795,6 +2797,7 @@
       if (this.playerSpellCutin <= 0) return;
       const alpha = Math.min(0.78, this.playerSpellCutin / 28);
       const visibility = Math.min(1, this.playerSpellCutin / 18);
+      const slideX = this.getCutinSlideX(this.playerSpellCutin, PLAYER_CUTIN_FRAMES, 1);
       ctx.save();
       ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
       ctx.fillRect(0, 0, W, H);
@@ -2806,6 +2809,8 @@
         const sourceX = (this.slipperNovaCutin.width - sourceW) / 2;
         ctx.fillStyle = "#080907";
         ctx.fillRect(0, bandY - 5, W, bandH + 10);
+        ctx.save();
+        ctx.translate(slideX, 0);
         ctx.drawImage(
           this.slipperNovaCutin,
           sourceX,
@@ -2817,6 +2822,7 @@
           W,
           bandH
         );
+        ctx.restore();
         const sheen = ctx.createLinearGradient(0, bandY, W, bandY + bandH);
         sheen.addColorStop(0, "rgba(255, 220, 112, 0.05)");
         sheen.addColorStop(0.68, "rgba(255, 220, 112, 0)");
@@ -2842,6 +2848,7 @@
       const visibility = Math.min(1, this.bossSpellCutin / 16);
       const bandH = 190;
       const bandY = H / 2 - bandH / 2;
+      const slideX = this.getCutinSlideX(this.bossSpellCutin, BOSS_CUTIN_FRAMES, -1);
       ctx.save();
       ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
       ctx.fillRect(0, 0, W, H);
@@ -2851,6 +2858,8 @@
       if (this.suginomikotoCutinLoaded) {
         const sourceW = Math.min(this.suginomikotoCutin.width, this.suginomikotoCutin.height * (W / bandH));
         const sourceX = (this.suginomikotoCutin.width - sourceW) / 2;
+        ctx.save();
+        ctx.translate(slideX, 0);
         ctx.drawImage(
           this.suginomikotoCutin,
           sourceX,
@@ -2862,6 +2871,7 @@
           W,
           bandH
         );
+        ctx.restore();
       }
       const shade = ctx.createLinearGradient(0, bandY, W, bandY + bandH);
       shade.addColorStop(0, "rgba(30, 63, 21, 0.24)");
@@ -2879,6 +2889,21 @@
       ctx.font = "800 15px system-ui, sans-serif";
       ctx.fillText(this.bossSpellCutinName, 18, H / 2 + 86);
       ctx.restore();
+    }
+
+    getCutinSlideX(timer, totalFrames, direction) {
+      const elapsed = totalFrames - timer;
+      const enterFrames = 12;
+      const exitFrames = 14;
+      if (elapsed < enterFrames) {
+        const progress = elapsed / enterFrames;
+        return direction * (1 - progress * progress) * (W + 80);
+      }
+      if (timer < exitFrames) {
+        const progress = 1 - timer / exitFrames;
+        return -direction * progress * progress * (W + 80);
+      }
+      return 0;
     }
 
     drawBackground() {
