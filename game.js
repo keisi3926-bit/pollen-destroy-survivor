@@ -32,7 +32,8 @@
   const BOSS_ASSET = "assets/characters/suginomikoto.png";
   const POLLEN_ENEMY_ASSET = "assets/enemies/pollen_enemies.png";
   const SLIPPER_NOVA_CUTIN_ASSET = "assets/effects/slipper_nova_cutin.jpg";
-  const APP_VERSION = "0.17.0";
+  const SUGINOMIKOTO_CUTIN_ASSET = "assets/effects/suginomikoto_cutin.jpg";
+  const APP_VERSION = "0.18.0";
   const INITIAL_CONTINUES = 3;
   const CHECKPOINTS = [
     { id: 0, name: "STAGE START", time: 0 },
@@ -1212,6 +1213,7 @@
       this.enemyClearOnCardChange(game);
       if (this.currentCard.isSpell) {
         game.state.showMessage(this.currentCard.name, 135);
+        game.startBossSpellCutin(this.currentCard.name);
       }
     }
 
@@ -1718,6 +1720,15 @@
         this.slipperNovaCutinLoaded = false;
       };
       this.slipperNovaCutin.src = `${SLIPPER_NOVA_CUTIN_ASSET}?v=${APP_VERSION}`;
+      this.suginomikotoCutin = new Image();
+      this.suginomikotoCutinLoaded = false;
+      this.suginomikotoCutin.onload = () => {
+        this.suginomikotoCutinLoaded = true;
+      };
+      this.suginomikotoCutin.onerror = () => {
+        this.suginomikotoCutinLoaded = false;
+      };
+      this.suginomikotoCutin.src = `${SUGINOMIKOTO_CUTIN_ASSET}?v=${APP_VERSION}`;
       this.titleMenu = new MenuManager(["START GAME", "DIFFICULTY", "HOW TO PLAY", "HIGH SCORE"].map((label) => ({ label })));
       this.pauseMenu = new MenuManager();
       this.gameOverMenu = new MenuManager();
@@ -1734,6 +1745,8 @@
       this.playerSpellCount = 3;
       this.playerSpellTimer = 0;
       this.playerSpellCutin = 0;
+      this.bossSpellCutin = 0;
+      this.bossSpellCutinName = "";
       this.playerSpellCooldown = 0;
       this.playerSpellActive = false;
       this.powerUpFlash = 0;
@@ -1800,6 +1813,8 @@
       this.playerSpellCount = keepScore ? preservedSpellCount : 3;
       this.playerSpellTimer = 0;
       this.playerSpellCutin = 0;
+      this.bossSpellCutin = 0;
+      this.bossSpellCutinName = "";
       this.playerSpellCooldown = 0;
       this.playerSpellActive = false;
       this.powerUpFlash = 0;
@@ -1842,6 +1857,8 @@
       this.playerSpellTimer = 0;
       this.playerSpellActive = false;
       this.playerSpellCutin = 0;
+      this.bossSpellCutin = 0;
+      this.bossSpellCutinName = "";
       this.playerSpellCooldown = 0;
       this.spellKeyHeld = false;
       this.spellPointerHeld = false;
@@ -2312,6 +2329,7 @@
       this.enemyBulletsSpawnedFrame = 0;
       this.playerSpellCooldown = Math.max(0, this.playerSpellCooldown - 1);
       this.playerSpellCutin = Math.max(0, this.playerSpellCutin - 1);
+      this.bossSpellCutin = Math.max(0, this.bossSpellCutin - 1);
       if (this.playerSpellActive) {
         this.playerSpellTimer = Math.max(0, this.playerSpellTimer - 1);
         if (this.playerSpellTimer <= 0) this.endPlayerSpell();
@@ -2356,6 +2374,11 @@
       this.state.shake = 16;
       this.state.showMessage("履技発動：スリッパ・ノヴァ", 100);
       for (let i = 0; i < 40; i += 1) this.particles.push(new Particle(this.player.x, this.player.y - 40, "#bdf6ff"));
+    }
+
+    startBossSpellCutin(cardName) {
+      this.bossSpellCutin = 74;
+      this.bossSpellCutinName = cardName;
     }
 
     endPlayerSpell() {
@@ -2674,6 +2697,7 @@
       if (this.state.mode === "paused") this.drawPauseMenu();
       if (this.state.mode === "gameover") this.drawGameOverMenu();
       if (this.state.mode === "clear") this.drawResult("花粉、滅殺完了！", "スコア " + this.score.value);
+      this.drawBossSpellCutin();
       this.drawPlayerSpellCutin();
       this.drawPowerUpFlash();
       this.dialogue.draw(ctx);
@@ -2781,6 +2805,51 @@
       ctx.fillStyle = "#ffe18a";
       ctx.font = "800 15px system-ui, sans-serif";
       ctx.fillText("極履技「スリッパ・ノヴァ」", W - 18, H / 2 + 88);
+      ctx.restore();
+    }
+
+    drawBossSpellCutin() {
+      if (this.bossSpellCutin <= 0) return;
+      const alpha = Math.min(0.8, this.bossSpellCutin / 24);
+      const visibility = Math.min(1, this.bossSpellCutin / 16);
+      const bandH = 190;
+      const bandY = H / 2 - bandH / 2;
+      ctx.save();
+      ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
+      ctx.fillRect(0, 0, W, H);
+      ctx.globalAlpha = visibility;
+      ctx.fillStyle = "#0b1007";
+      ctx.fillRect(0, bandY - 5, W, bandH + 10);
+      if (this.suginomikotoCutinLoaded) {
+        const sourceW = Math.min(this.suginomikotoCutin.width, this.suginomikotoCutin.height * (W / bandH));
+        const sourceX = (this.suginomikotoCutin.width - sourceW) / 2;
+        ctx.drawImage(
+          this.suginomikotoCutin,
+          sourceX,
+          0,
+          sourceW,
+          this.suginomikotoCutin.height,
+          0,
+          bandY,
+          W,
+          bandH
+        );
+      }
+      const shade = ctx.createLinearGradient(0, bandY, W, bandY + bandH);
+      shade.addColorStop(0, "rgba(30, 63, 21, 0.24)");
+      shade.addColorStop(0.62, "rgba(30, 63, 21, 0)");
+      shade.addColorStop(1, "rgba(255, 222, 91, 0.18)");
+      ctx.fillStyle = shade;
+      ctx.fillRect(0, bandY, W, bandH);
+      ctx.shadowColor = "rgba(0, 0, 0, 0.95)";
+      ctx.shadowBlur = 8;
+      ctx.fillStyle = "#f5ffd9";
+      ctx.font = "900 27px system-ui, sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillText("SUGINOMIKOTO", 18, H / 2 + 60);
+      ctx.fillStyle = "#ffe479";
+      ctx.font = "800 15px system-ui, sans-serif";
+      ctx.fillText(this.bossSpellCutinName, 18, H / 2 + 86);
       ctx.restore();
     }
 

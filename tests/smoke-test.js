@@ -113,7 +113,7 @@ const sandbox = {
   },
   fetch: async () => ({
     ok: true,
-    json: async () => ({ version: "0.17.0", updates: [] }),
+    json: async () => ({ version: "0.18.0", updates: [] }),
   }),
   caches: { keys: async () => [] },
   requestAnimationFrame() {},
@@ -316,6 +316,12 @@ game.spawnStageEnemies();
 assert.ok(game.boss, "boss should spawn at the end of the stage");
 game.boss.entered = true;
 game.boss.beginCurrentCard(game);
+assert.equal(game.bossSpellCutin, 0, "normal boss attack should not show a cut-in");
+game.boss.currentCard.hp = 0;
+game.boss.nextCard(game);
+assert.ok(game.bossSpellCutin > 0, "boss spell should start the Suginomikoto cut-in");
+assert.equal(game.bossSpellCutinName, "神威「黄塵円舞」", "boss cut-in should show the current spell name");
+game.draw();
 while (game.boss && !game.boss.defeated) {
   game.boss.currentCard.hp = 0;
   game.boss.nextCard(game);
