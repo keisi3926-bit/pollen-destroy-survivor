@@ -28,6 +28,39 @@
   const BACKGROUND_STAGE1 = "assets/backgrounds/stage1_pollen_sando.png";
   const BGM_STAGE1 = "assets/audio/stage1_spring_pollen_path.mp3";
   const BGM_BOSS = "assets/audio/boss_suginomikoto.mp3";
+  const AUDIO_SETTINGS_KEY = "pollenDestroySlipperAudioSettings";
+  const BGM_SOURCES = {
+    stage: BGM_STAGE1,
+    boss: BGM_BOSS,
+  };
+  const SE_NAMES = [
+    "item_p_small",
+    "item_p_large",
+    "power_up",
+    "power_max",
+    "follower_add",
+    "cutin_haou_start",
+    "cutin_haou_impact",
+    "slipper_nova_charge",
+    "slipper_nova_fire",
+    "slipper_nova_end",
+    "cutin_suginomikoto_start",
+    "divine_bell",
+    "pollen_charge",
+    "pollen_release",
+    "infinite_scatter",
+    "player_hit",
+    "menu_move",
+    "menu_decide",
+    "menu_cancel",
+  ];
+  const SE_COOLDOWNS = {
+    item_p_small: 45,
+    item_p_large: 80,
+    menu_move: 55,
+    pollen_charge: 250,
+    pollen_release: 250,
+  };
   const PLAYER_ASSET = "assets/characters/player.png";
   const BOSS_ASSET = "assets/characters/suginomikoto.png";
   const POLLEN_ENEMY_ASSET = "assets/enemies/pollen_enemies.png";
@@ -614,6 +647,7 @@
       game.state.shake = 18;
       this.invincible = 130;
       game.cancelEnemyBullets(true);
+      game.audio.playSE("player_hit", { cooldown: 120, maxVoices: 1 });
       game.spawnBurst(this.hitPoint.x, this.hitPoint.y, "#eafcff", 18);
       game.state.showMessage(hadLives ? "MISS - 復帰！" : "GAME OVER", 90);
       if (!hadLives) game.openGameOverMenu();
@@ -1664,59 +1698,219 @@
 
   class AudioManager {
     constructor() {
-      this.stageBgm = new Audio(`${BGM_STAGE1}?v=${APP_VERSION}`);
-      this.bossBgm = new Audio(`${BGM_BOSS}?v=${APP_VERSION}`);
-      this.stageBgm.loop = true;
-      this.bossBgm.loop = true;
-      this.stageBgm.volume = 0.48;
-      this.bossBgm.volume = 0.52;
-      this.enabled = true;
+      this.settings = this.loadSettings();
+      this.bgm = new Map();
+      this.seSources = new Map();
+      this.activeSE = new Map();
+      this.lastSETime = new Map();
+      this.currentBGM = null;
+      this.currentBGMName = "";
+      this.wasPlayingBeforePause = false;
       this.unlocked = false;
-      this.onPowerItem = null;
+      this.audioContext = null;
+      this.preload();
     }
 
     unlock() {
       this.unlocked = true;
+      const Context = window.AudioContext || window.webkitAudioContext;
+      if (Context && !this.audioContext) {
+        try {
+          this.audioContext = new Context();
+        } catch (error) {
+          console.warn("AudioContext could not be created", error);
+        }
+      }
+      if (this.audioContext?.state === "suspended") {
+        this.audioContext.resume().catch((error) => console.warn("AudioContext resume failed", error));
+      }
+    }
+
+    preload() {
+      for (const [name, src] of Object.entries(BGM_SOURCES)) {
+        const audio = new Audio(`${src}?v=${APP_VERSION}`);
+        audio.loop = true;
+        audio.preload = "auto";
+        audio.addEventListener?.("error", () => console.warn(`BGM load failed: ${name}`));
+        audio.load?.();
+        this.bgm.set(name, audio);
+      }
+      for (const name of SE_NAMES) {
+        const src = `assets/audio/se/${name}.wav?v=${APP_VERSION}`;
+        const audio = new Audio(src);
+        audio.preload = "auto";
+        audio.addEventListener?.("error", () => console.warn(`SE load failed: ${name}`));
+        audio.load?.();
+        this.seSources.set(name, src);
+      }
+      this.applyVolumes();
+    }
+
+    playBGM(name, loop = true) {
+      const audio = this.bgm.get(name);
+      if (!audio) {
+        console.warn(`Unknown BGM: ${name}`);
+        return;
+      }
+      this.unlock();
+      if (this.currentBGM && this.currentBGM !== audio) this.currentBGM.pause();
+      this.currentBGM = audio;
+      this.currentBGMName = name;
+      audio.loop = loop;
+      audio.volume = this.settings.masterMute ? 0 : this.settings.bgmVolume;
+      audio.play().catch((error) => console.warn(`BGM play failed: ${name}`, error));
+    }
+
+    stopBGM() {
+      for (const audio of this.bgm.values()) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
+      this.currentBGM = null;
+      this.currentBGMName = "";
+    }
+
+    pauseBGM() {
+      this.currentBGM?.pause();
+    }
+
+    resumeBGM() {
+      if (!this.currentBGM || this.settings.masterMute) return;
+      this.unlock();
+      this.currentBGM.play().catch((error) => console.warn("BGM resume failed", error));
+    }
+
+    playSE(name, options = {}) {
+      const src = this.seSources.get(name);
+      if (!src || this.settings.masterMute || this.settings.seVolume <= 0) return null;
+      const now = Date.now();
+      const cooldown = options.cooldown ?? SE_COOLDOWNS[name] ?? 20;
+      if (now - (this.lastSETime.get(name) || 0) < cooldown) return null;
+      const voices = this.activeSE.get(name) || new Set();
+      const maxVoices = options.maxVoices ?? 3;
+      if (voices.size >= maxVoices) return null;
+
+      this.lastSETime.set(name, now);
+      this.unlock();
+      const audio = new Audio(src);
+      audio.volume = this.settings.seVolume;
+      voices.add(audio);
+      this.activeSE.set(name, voices);
+      const release = () => voices.delete(audio);
+      audio.addEventListener?.("ended", release, { once: true });
+      audio.addEventListener?.("error", () => {
+        release();
+        console.warn(`SE play failed: ${name}`);
+      }, { once: true });
+      audio.play().catch((error) => {
+        release();
+        console.warn(`SE play failed: ${name}`, error);
+      });
+      return audio;
+    }
+
+    stopSE(name) {
+      const voices = this.activeSE.get(name);
+      if (!voices) return;
+      for (const audio of voices) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
+      voices.clear();
+    }
+
+    setBGMVolume(value) {
+      this.settings.bgmVolume = clamp(value, 0, 1);
+      this.applyVolumes();
+      this.saveSettings();
+    }
+
+    setSEVolume(value) {
+      this.settings.seVolume = clamp(value, 0, 1);
+      this.applyVolumes();
+      this.saveSettings();
+    }
+
+    getBGMVolume() {
+      return this.settings.bgmVolume;
+    }
+
+    getSEVolume() {
+      return this.settings.seVolume;
+    }
+
+    toggleMute() {
+      this.setMute(!this.settings.masterMute);
+    }
+
+    setMute(value) {
+      this.settings.masterMute = Boolean(value);
+      this.applyVolumes();
+      if (this.settings.masterMute) {
+        this.pauseAll();
+      } else if (this.wasPlayingBeforePause) {
+        this.resumeAll();
+      }
+      this.saveSettings();
+    }
+
+    pauseAll() {
+      this.wasPlayingBeforePause = Boolean(this.currentBGM && !this.currentBGM.paused);
+      this.pauseBGM();
+      for (const name of this.activeSE.keys()) this.stopSE(name);
+    }
+
+    resumeAll() {
+      if (!this.settings.masterMute && this.wasPlayingBeforePause) this.resumeBGM();
+      this.wasPlayingBeforePause = false;
+    }
+
+    applyVolumes() {
+      const bgmVolume = this.settings.masterMute ? 0 : this.settings.bgmVolume;
+      const seVolume = this.settings.masterMute ? 0 : this.settings.seVolume;
+      for (const audio of this.bgm.values()) audio.volume = bgmVolume;
+      for (const voices of this.activeSE.values()) {
+        for (const audio of voices) audio.volume = seVolume;
+      }
+    }
+
+    saveSettings() {
+      localStorage.setItem(AUDIO_SETTINGS_KEY, JSON.stringify(this.settings));
+    }
+
+    loadSettings() {
+      const defaults = { bgmVolume: 0.7, seVolume: 0.8, masterMute: false };
+      try {
+        return { ...defaults, ...JSON.parse(localStorage.getItem(AUDIO_SETTINGS_KEY) || "{}") };
+      } catch (error) {
+        console.warn("Audio settings load failed", error);
+        return defaults;
+      }
     }
 
     playStage() {
-      if (!this.enabled) return;
-      this.unlock();
-      this.bossBgm.pause();
-      this.stageBgm.play().catch(() => {
-        // Browser autoplay policies may still block until the next explicit user gesture.
-      });
+      this.playBGM("stage", true);
     }
 
     playBoss() {
-      if (!this.enabled) return;
-      this.unlock();
-      this.stageBgm.pause();
-      this.bossBgm.play().catch(() => {
-        // Browser autoplay policies may still block until the next explicit user gesture.
-      });
+      this.playBGM("boss", true);
     }
 
     pauseStage() {
-      this.stageBgm.pause();
-      this.bossBgm.pause();
+      this.pauseBGM();
     }
 
     stopStage() {
-      this.stageBgm.pause();
-      this.bossBgm.pause();
-      this.stageBgm.currentTime = 0;
-      this.bossBgm.currentTime = 0;
+      this.stopBGM();
     }
 
     fadeTo(volume) {
-      this.stageBgm.volume = clamp(volume, 0, 1);
-      this.bossBgm.volume = clamp(volume, 0, 1);
+      this.setBGMVolume(volume);
     }
 
     playPowerItem(amount, stageChanged) {
-      // 後から実音源を接続できる取得効果音フック。
-      if (typeof this.onPowerItem === "function") this.onPowerItem({ amount, stageChanged });
+      this.playSE(amount >= POWER_CONFIG.largePValue ? "item_p_large" : "item_p_small");
+      if (stageChanged) this.playSE("power_up");
     }
   }
 
@@ -1732,7 +1926,6 @@
       this.difficulty.set(this.save.data.settings?.lastDifficulty || "normal");
       this.background = new BackgroundManager(BACKGROUND_STAGE1);
       this.audio = new AudioManager();
-      this.audio.fadeTo(this.save.data.settings?.volume ?? 0.5);
       this.slipperNovaCutin = new Image();
       this.slipperNovaCutinLoaded = false;
       this.slipperNovaCutin.onload = () => {
@@ -1771,6 +1964,10 @@
       this.bossSpellCutinName = "";
       this.playerSpellCooldown = 0;
       this.playerSpellActive = false;
+      this.playerSpellFirePlayed = false;
+      this.playerCutinImpactPlayed = false;
+      this.bossCutinBellPlayed = false;
+      this.bossCutinReleasePlayed = false;
       this.powerUpFlash = 0;
       this.continuesLeft = INITIAL_CONTINUES;
       this.continueCount = 0;
@@ -1839,6 +2036,10 @@
       this.bossSpellCutinName = "";
       this.playerSpellCooldown = 0;
       this.playerSpellActive = false;
+      this.playerSpellFirePlayed = false;
+      this.playerCutinImpactPlayed = false;
+      this.bossCutinBellPlayed = false;
+      this.bossCutinReleasePlayed = false;
       this.powerUpFlash = 0;
       this.missedDuringCard = false;
       this.spawnedWaves = new Set(
@@ -1884,6 +2085,10 @@
       this.playerSpellCooldown = 0;
       this.spellKeyHeld = false;
       this.spellPointerHeld = false;
+      this.playerSpellFirePlayed = false;
+      this.playerCutinImpactPlayed = false;
+      this.bossCutinBellPlayed = false;
+      this.bossCutinReleasePlayed = false;
       this.input.touchActive = false;
       this.input.mouseActive = false;
       this.input.fire = false;
@@ -1900,6 +2105,7 @@
 
     bindInput() {
       window.addEventListener("keydown", (e) => {
+        this.audio.unlock();
         if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", " ", "Shift", "x", "X", "Escape", "Enter"].includes(e.key)) e.preventDefault();
         if (e.key === "F3") {
           if (!e.repeat) this.debugVisible = !this.debugVisible;
@@ -1955,6 +2161,7 @@
       });
 
       canvas.addEventListener("pointerdown", (e) => {
+        this.audio.unlock();
         if (e.button === 2) {
           e.preventDefault();
           if (!this.dialogue.active) this.activatePlayerSpell();
@@ -2006,6 +2213,7 @@
       });
 
       slowButton.addEventListener("pointerdown", (e) => {
+        this.audio.unlock();
         e.preventDefault();
         if (this.dialogue.active) {
           this.dialogue.advance();
@@ -2024,6 +2232,7 @@
       });
 
       spellButton.addEventListener("pointerdown", (e) => {
+        this.audio.unlock();
         e.preventDefault();
         if (this.dialogue.active) {
           this.dialogue.advance();
@@ -2041,6 +2250,7 @@
       });
 
       menuButton.addEventListener("pointerdown", (e) => {
+        this.audio.unlock();
         e.preventDefault();
         if (this.state.mode === "stage") this.openPauseMenu();
         else if (this.state.mode === "paused") this.resumeFromPause();
@@ -2072,7 +2282,7 @@
     openPauseMenu() {
       if (this.state.mode !== "stage" || this.dialogue.active) return;
       this.state.mode = "paused";
-      this.audio.pauseStage();
+      this.audio.pauseAll();
       this.pauseMenu.setItems([
         { label: "RESUME", action: "resume" },
         { label: "RESTART", action: "restart", confirm: "ステージを最初からやり直しますか？" },
@@ -2084,7 +2294,7 @@
     resumeFromPause() {
       if (this.state.mode === "paused") {
         this.state.mode = "stage";
-        this.audio.playStage();
+        this.audio.resumeAll();
       }
     }
 
@@ -2352,6 +2562,20 @@
       this.playerSpellCooldown = Math.max(0, this.playerSpellCooldown - 1);
       this.playerSpellCutin = Math.max(0, this.playerSpellCutin - 1);
       this.bossSpellCutin = Math.max(0, this.bossSpellCutin - 1);
+      if (this.playerSpellCutin === PLAYER_CUTIN_FRAMES - 12 && !this.playerCutinImpactPlayed) {
+        this.playerCutinImpactPlayed = true;
+        this.audio.playSE("cutin_haou_impact", { maxVoices: 1 });
+        this.state.shake = Math.max(this.state.shake, 6);
+      }
+      if (this.bossSpellCutin === BOSS_CUTIN_FRAMES - 12 && !this.bossCutinBellPlayed) {
+        this.bossCutinBellPlayed = true;
+        this.audio.playSE("divine_bell", { maxVoices: 1 });
+        this.state.shake = Math.max(this.state.shake, 5);
+      }
+      if (this.bossSpellCutin === 14 && !this.bossCutinReleasePlayed) {
+        this.bossCutinReleasePlayed = true;
+        this.audio.playSE("pollen_release", { maxVoices: 1 });
+      }
       if (this.playerSpellActive) {
         this.playerSpellTimer = Math.max(0, this.playerSpellTimer - 1);
         if (this.playerSpellTimer <= 0) this.endPlayerSpell();
@@ -2390,20 +2614,30 @@
       this.playerSpellCutin = PLAYER_CUTIN_FRAMES;
       this.playerSpellCooldown = 220;
       this.playerSpellActive = true;
+      this.playerSpellFirePlayed = false;
+      this.playerCutinImpactPlayed = false;
       this.player.invincible = Math.max(this.player.invincible, 180);
       this.cancelEnemyBullets(true);
       this.lasers = [];
       this.state.shake = 16;
       this.state.showMessage("履技発動：スリッパ・ノヴァ", 100);
+      this.audio.playSE("cutin_haou_start", { maxVoices: 1 });
+      this.audio.playSE("slipper_nova_charge", { maxVoices: 1 });
       for (let i = 0; i < 40; i += 1) this.particles.push(new Particle(this.player.x, this.player.y - 40, "#bdf6ff"));
     }
 
     startBossSpellCutin(cardName) {
       this.bossSpellCutin = BOSS_CUTIN_FRAMES;
       this.bossSpellCutinName = cardName;
+      this.bossCutinBellPlayed = false;
+      this.bossCutinReleasePlayed = false;
+      this.audio.playSE("cutin_suginomikoto_start", { maxVoices: 1 });
+      this.audio.playSE("pollen_charge", { maxVoices: 1 });
+      if (cardName.includes("無限飛散")) this.audio.playSE("infinite_scatter", { maxVoices: 1 });
     }
 
     endPlayerSpell() {
+      if (this.playerSpellActive) this.audio.playSE("slipper_nova_end", { maxVoices: 1 });
       this.playerSpellActive = false;
       this.playerSpellTimer = 0;
       this.player.invincible = Math.min(this.player.invincible, 20);
@@ -2422,6 +2656,10 @@
 
     updatePlayerSpell() {
       if (!this.playerSpellActive || this.playerSpellTimer <= 0) return;
+      if (!this.playerSpellFirePlayed && this.playerSpellTimer <= 154) {
+        this.playerSpellFirePlayed = true;
+        this.audio.playSE("slipper_nova_fire", { maxVoices: 1 });
+      }
       this.player.invincible = Math.max(this.player.invincible, 3);
       if (this.playerSpellTimer % 8 === 0) this.cancelEnemyBullets(true);
 
@@ -2616,7 +2854,11 @@
         }
       }
 
-      this.audio.playPowerItem(item.amount, stageChanged);
+      this.audio.playSE(item.amount >= POWER_CONFIG.largePValue ? "item_p_large" : "item_p_small");
+      if (stageChanged) {
+        this.audio.playSE(reachedMax ? "power_max" : "power_up", { maxVoices: 1 });
+        this.audio.playSE("follower_add", { cooldown: 100, maxVoices: 1 });
+      }
       this.spawnBurst(item.x, item.y, stageChanged ? "#fff0a8" : "#8eeeff", stageChanged ? 22 : 12);
       return true;
     }

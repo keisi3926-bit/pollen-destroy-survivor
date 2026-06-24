@@ -90,13 +90,21 @@ class ImageStub {
 }
 
 class AudioStub {
-  constructor() {
+  constructor(src = "") {
+    this.src = src;
     this.currentTime = 0;
     this.volume = 1;
     this.loop = false;
+    this.paused = true;
+    this.listeners = new Map();
   }
-  play() { return Promise.resolve(); }
-  pause() {}
+  addEventListener(name, handler) { this.listeners.set(name, handler); }
+  load() {}
+  play() {
+    this.paused = false;
+    return Promise.resolve();
+  }
+  pause() { this.paused = true; }
 }
 
 const localStorageData = new Map();
@@ -137,6 +145,16 @@ vm.runInNewContext(source, sandbox, { filename: "game.js" });
 const game = sandbox.window.__POLLEN_GAME__;
 assert.ok(game, "debug game hook should be available");
 assert.equal(updatePanel.classList.contains("is-closed"), true, "mobile update panel should start closed");
+assert.equal(game.audio.getBGMVolume(), 0.7, "default BGM volume should be 70 percent");
+assert.equal(game.audio.getSEVolume(), 0.8, "default SE volume should be 80 percent");
+game.audio.setBGMVolume(0.55);
+game.audio.setSEVolume(0.65);
+assert.equal(JSON.parse(localStorageData.get("pollenDestroySlipperAudioSettings")).bgmVolume, 0.55);
+game.audio.playBGM("stage");
+game.audio.setMute(true);
+assert.equal(game.audio.currentBGM.volume, 0, "master mute should silence BGM");
+game.audio.setMute(false);
+assert.equal(game.audio.currentBGM.volume, 0.55, "unmute should restore the saved BGM volume");
 
 game.start(false, false);
 game.dialogue.active = false;
@@ -257,18 +275,13 @@ assert.ok(
 collectible.x = game.player.x;
 collectible.y = game.player.y;
 game.power.value = 0;
-let powerSoundHook = null;
-game.audio.onPowerItem = (detail) => {
-  powerSoundHook = detail;
-};
 game.resolveCollisions();
 assert.equal(game.powerItems.includes(collectible), false, "collected power item should be removed immediately");
 assert.equal(collectible.collected, true, "collected flag should be set");
 assert.equal(collectible.active, false, "collected power item should become inactive");
 assert.equal(game.power.value, 1, "power value should increase once");
 assert.equal(game.followers.length, 0, "power below the first threshold should not deploy a follower");
-assert.equal(powerSoundHook.amount, 1, "power item sound hook should receive item amount");
-assert.equal(powerSoundHook.stageChanged, false, "power item sound hook should receive stage change state");
+assert.equal(game.audio.activeSE.get("item_p_small").size, 1, "small power item should play its collection sound");
 assert.equal(game.collectPowerItem(collectible), false, "same power item must not be collected twice");
 assert.equal(game.power.value, 1, "duplicate collection must not increase power");
 game.power.value = 3;
