@@ -1,8 +1,13 @@
 {
-  "version": "0.18.0",
+  "version": "0.19.0",
   "build": "2026-06-24",
   "status": "MVP公開準備版",
   "updates": [
+    {
+      "version": "0.19.0",
+      "date": "2026-06-24",
+      "summary": "POWER段階と取得演出を再調整。カットインをスライド演出化し、19種の自動生成SE、BGM/SE音量設定、MASTER MUTE、タイトルOPTIONSを追加。"
+    },
     {
       "version": "0.18.0",
       "date": "2026-06-24",
@@ -116,8 +121,10 @@
     "assets/characters/player.png",
     "assets/characters/suginomikoto.png",
     "assets/enemies/pollen_enemies.png",
-    "assets/effects/slipper_nova_cutin.jpg",
-    "assets/effects/suginomikoto_cutin.jpg",
+    "assets/cutin/haou_slipper_nova.png",
+    "assets/cutin/suginomikoto_divine_attack.png",
+    "tools/generate_se.py",
+    "assets/audio/se/",
     "assets/characters/.gitkeep"
   ]
 }

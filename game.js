@@ -68,7 +68,7 @@
   const SUGINOMIKOTO_CUTIN_ASSET = "assets/cutin/suginomikoto_divine_attack.png";
   const PLAYER_CUTIN_FRAMES = 82;
   const BOSS_CUTIN_FRAMES = 74;
-  const APP_VERSION = "0.18.0";
+  const APP_VERSION = "0.19.0";
   const INITIAL_CONTINUES = 3;
   const CHECKPOINTS = [
     { id: 0, name: "STAGE START", time: 0 },
@@ -2404,7 +2404,7 @@
 
     openGameOverMenu() {
       this.state.mode = "gameover";
-      this.audio.pauseStage();
+      this.audio.pauseAll();
       this.saveCurrentRun(false);
       this.gameOverMenu.setItems([
         { label: "CONTINUE", action: "continue", disabled: this.continuesLeft <= 0 },

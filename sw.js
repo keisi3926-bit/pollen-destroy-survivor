@@ -1,10 +1,37 @@
-const CACHE_VERSION = "pollen-destroy-slipper-v0.18.0";
+const CACHE_VERSION = "pollen-destroy-slipper-v0.19.0";
 const APP_SHELL = [
   "./",
   "index.html",
   "style.css",
   "game.js",
-  "version.json"
+  "version.json",
+  "assets/backgrounds/stage1_pollen_sando.png",
+  "assets/audio/stage1_spring_pollen_path.mp3",
+  "assets/audio/boss_suginomikoto.mp3",
+  "assets/characters/player.png",
+  "assets/characters/suginomikoto.png",
+  "assets/enemies/pollen_enemies.png",
+  "assets/cutin/haou_slipper_nova.png",
+  "assets/cutin/suginomikoto_divine_attack.png",
+  "assets/audio/se/item_p_small.wav",
+  "assets/audio/se/item_p_large.wav",
+  "assets/audio/se/power_up.wav",
+  "assets/audio/se/power_max.wav",
+  "assets/audio/se/follower_add.wav",
+  "assets/audio/se/cutin_haou_start.wav",
+  "assets/audio/se/cutin_haou_impact.wav",
+  "assets/audio/se/slipper_nova_charge.wav",
+  "assets/audio/se/slipper_nova_fire.wav",
+  "assets/audio/se/slipper_nova_end.wav",
+  "assets/audio/se/cutin_suginomikoto_start.wav",
+  "assets/audio/se/divine_bell.wav",
+  "assets/audio/se/pollen_charge.wav",
+  "assets/audio/se/pollen_release.wav",
+  "assets/audio/se/infinite_scatter.wav",
+  "assets/audio/se/player_hit.wav",
+  "assets/audio/se/menu_move.wav",
+  "assets/audio/se/menu_decide.wav",
+  "assets/audio/se/menu_cancel.wav"
 ];
 
 self.addEventListener("install", (event) => {

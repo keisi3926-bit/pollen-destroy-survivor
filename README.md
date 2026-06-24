@@ -41,6 +41,14 @@ Xboxコントローラー:
 - ポーズ: Menu
 - 戻る・会話スキップ: B
 
+OPTIONS:
+
+- `BGM VOLUME`: BGM音量を0〜100で調整
+- `SE VOLUME`: SE音量を0〜100で調整し、変更時に確認音を再生
+- `MASTER MUTE`: BGMとSEを一括ミュート
+- 設定は `pollenDestroySlipperAudioSettings` に保存
+- キーボード、Xboxコントローラー、スマホの左右タップに対応
+
 ## 実装内容
 
 - 一面道中
@@ -53,14 +61,17 @@ Xboxコントローラー:
 - 道中BGM `assets/audio/stage1_spring_pollen_path.mp3` 対応
 - ボスBGM `assets/audio/boss_suginomikoto.mp3` 対応
 - 主人公の極履技「スリッパ・ノヴァ」
-- 専用画像 `assets/effects/slipper_nova_cutin.jpg` を使ったノヴァカットイン
-- 神威開始時に表示するスギノミコト専用カットイン
+- 専用画像 `assets/cutin/haou_slipper_nova.png` を使ったノヴァカットイン
+- `assets/cutin/suginomikoto_divine_attack.png` を使った神威カットイン
 - 履力アイテム（小P・大P）と最大4足の追従支援機「随履」
 - 紫色の点数アイテム「点」（小200・中500・大1200点）
 - 画面上部20％へ移動すると、画面内のP・点アイテムを自動回収
 - 随履の通常追従、低速固定陣形、同期射撃、スリッパ・ノヴァ連携光線
 - POWER段階に応じた本体ショット本数・太さ・色・威力の強化
-- Pアイテム取得演出、POWERゲージ、取得効果音接続用フック
+- Pアイテム取得演出、POWERゲージ、取得SE
+- 数式波形から生成した19種類のオリジナルSE
+- BGM/SE個別音量、MASTER MUTE、localStorage設定保存
+- PC/Xbox/スマホ対応のタイトルOPTIONS画面
 - ボス神威進行
 - 残機制、難易度選択、途中復帰
 - スコア、エクステンド、難易度別ハイスコア保存
@@ -79,13 +90,13 @@ Xboxコントローラー:
 - `CONTINUE` は最後に到達したチェックポイントから再開します。
 - コンティニュー時はスコアが20%減少し、コンティニュー回数が記録されます。
 - スコアが `30000 / 80000 / 150000` に到達すると残機が1つ増えます。
-- 花粉撃破で履力アイテムが出現し、履力段階に応じて随履が最大4足まで増えます。
+- POWER段階は `0 / 3 / 7 / 12 / 20` で上昇し、随履が最大4足まで増えます。
 - 花粉撃破時には点数アイテムも出現します。
 - 被弾時は履力を5失い、随履を1段階分失います。
 
 ## 難易度
 
-タイトル画面の `DIFFICULTY` で切り替えます。
+タイトル画面で `START GAME` を選択中に左右操作、または画面下の難易度欄をタップして切り替えます。
 
 - `EASY`: 弾速と弾数を抑え、ボス到達を優先
 - `NORMAL`: 一面として遊びやすい標準設定
@@ -111,9 +122,14 @@ assets/
     .gitkeep
   enemies/
     pollen_enemies.png
-  effects/
-    slipper_nova_cutin.jpg
-    suginomikoto_cutin.jpg
+  cutin/
+    haou_slipper_nova.png
+    suginomikoto_divine_attack.png
+  audio/
+    se/
+      *.wav
+tools/
+  generate_se.py
 ```
 
 ## 更新管理

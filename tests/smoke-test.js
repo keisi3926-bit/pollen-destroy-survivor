@@ -121,7 +121,7 @@ const sandbox = {
   },
   fetch: async () => ({
     ok: true,
-    json: async () => ({ version: "0.18.0", updates: [] }),
+    json: async () => ({ version: "0.19.0", updates: [] }),
   }),
   caches: { keys: async () => [] },
   requestAnimationFrame() {},
