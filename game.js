@@ -31,7 +31,7 @@
   const PLAYER_ASSET = "assets/characters/player.png";
   const BOSS_ASSET = "assets/characters/suginomikoto.png";
   const POLLEN_ENEMY_ASSET = "assets/enemies/pollen_enemies.png";
-  const APP_VERSION = "0.12.0";
+  const APP_VERSION = "0.13.0";
   const INITIAL_CONTINUES = 3;
   const CHECKPOINTS = [
     { id: 0, name: "STAGE START", time: 0 },
@@ -372,6 +372,36 @@
     }
   }
 
+  class PowerManager {
+    constructor() {
+      this.max = 20;
+      this.value = 0;
+    }
+
+    reset() {
+      this.value = 0;
+    }
+
+    add(amount) {
+      const before = this.value;
+      this.value = clamp(this.value + amount, 0, this.max);
+      return this.value - before;
+    }
+
+    loseOnMiss() {
+      this.value = Math.max(0, this.value - 5);
+    }
+
+    get stage() {
+      if (this.value <= 0) return 0;
+      return Math.min(4, Math.ceil(this.value / 5));
+    }
+
+    get label() {
+      return this.value >= this.max ? "MAX" : `${this.value}/${this.max}`;
+    }
+  }
+
   class CheckpointManager {
     constructor() {
       this.current = 0;
@@ -403,6 +433,7 @@
         easy: { highScore: 0, maxCheckpoint: 0, cleared: false, continues: 0 },
         normal: { highScore: 0, maxCheckpoint: 0, cleared: false, continues: 0 },
         hard: { highScore: 0, maxCheckpoint: 0, cleared: false, continues: 0 },
+        settings: { lastDifficulty: "normal", volume: 0.5, gamepadEnabled: true },
       };
     }
 
@@ -421,6 +452,11 @@
       current.cleared = Boolean(current.cleared || cleared);
       current.continues = Math.max(current.continues || 0, continues);
       this.data[difficulty] = current;
+      localStorage.setItem(this.key, JSON.stringify(this.data));
+    }
+
+    saveSettings(settings) {
+      this.data.settings = { ...this.defaultData().settings, ...this.data.settings, ...settings };
       localStorage.setItem(this.key, JSON.stringify(this.data));
     }
   }
@@ -474,6 +510,7 @@
         this.imageLoaded = true;
       };
       this.image.src = `${PLAYER_ASSET}?v=${APP_VERSION}`;
+      this.positionHistory = [];
     }
 
     reset() {
@@ -481,9 +518,10 @@
       this.y = H - 90;
       this.cooldown = 0;
       this.invincible = 100;
+      this.positionHistory = Array.from({ length: 30 }, () => ({ x: this.x, y: this.y }));
     }
 
-    update(input, bullets) {
+    update(input, bullets, game) {
       const slow = input.slow || input.gpSlow;
       const speed = slow ? 2.5 : 5;
       let mx = 0;
@@ -505,11 +543,14 @@
 
       this.x = clamp(this.x, 24, W - 24);
       this.y = clamp(this.y, 50, H - 36);
+      this.positionHistory.unshift({ x: this.x, y: this.y });
+      if (this.positionHistory.length > 32) this.positionHistory.length = 32;
       this.cooldown = Math.max(0, this.cooldown - 1);
       this.invincible = Math.max(0, this.invincible - 1);
 
       if ((input.fire || input.gpFire || input.touchActive) && this.cooldown <= 0) {
         this.shoot(bullets);
+        if (game) game.shootFollowers();
         this.cooldown = slow ? 7 : 6;
       }
     }
@@ -524,6 +565,7 @@
       if (this.invincible > 0 || game.state.mode !== "stage") return;
       const hadLives = game.life.loseLife();
       game.playerSpellCount = 3;
+      game.power.loseOnMiss();
       game.missedDuringCard = true;
       game.state.shake = 18;
       this.invincible = 130;
@@ -592,6 +634,98 @@
       ctx.beginPath();
       ctx.arc(0, 3, this.r, 0, TAU);
       ctx.fill();
+    }
+  }
+
+  class PowerItem {
+    constructor(x, y, amount = 1) {
+      this.x = x;
+      this.y = y;
+      this.amount = amount;
+      this.r = amount >= 5 ? 13 : 9;
+      this.age = 0;
+      this.collected = false;
+    }
+
+    update(player) {
+      this.age += 1;
+      this.y += this.amount >= 5 ? 1.05 : 1.3;
+      if (player.y < 170 && this.y < H - 80) {
+        const angle = Math.atan2(player.y - this.y, player.x - this.x);
+        this.x += Math.cos(angle) * 4.8;
+        this.y += Math.sin(angle) * 4.8;
+      }
+    }
+
+    offscreen() {
+      return this.y > H + 30;
+    }
+
+    draw(ctx) {
+      ctx.save();
+      ctx.translate(this.x, this.y);
+      const pulse = 1 + Math.sin(this.age * 0.15) * 0.08;
+      ctx.scale(pulse, pulse);
+      ctx.fillStyle = this.amount >= 5 ? "#ffd85c" : "#78d9ff";
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, this.r, 0, TAU);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#17261d";
+      ctx.font = `900 ${this.amount >= 5 ? 15 : 12}px system-ui, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("P", 0, 1);
+      ctx.restore();
+    }
+  }
+
+  class FollowerSlipper {
+    constructor(index) {
+      this.index = index;
+      this.x = W / 2;
+      this.y = H - 70;
+    }
+
+    update(player, slow) {
+      if (slow) {
+        const formations = [
+          { x: -34, y: 6 },
+          { x: 34, y: 6 },
+          { x: -62, y: 18 },
+          { x: 62, y: 18 },
+        ];
+        const target = formations[this.index];
+        this.x += (player.x + target.x - this.x) * 0.28;
+        this.y += (player.y + target.y - this.y) * 0.28;
+        return;
+      }
+      const delays = [6, 12, 18, 24];
+      const target = player.positionHistory[delays[this.index]] || player;
+      this.x += (target.x - this.x) * 0.34;
+      this.y += (target.y - this.y) * 0.34;
+    }
+
+    draw(ctx, t) {
+      ctx.save();
+      ctx.translate(this.x, this.y);
+      ctx.rotate(-0.1 + Math.sin(t * 0.08 + this.index) * 0.08);
+      ctx.fillStyle = "#72d8ef";
+      ctx.strokeStyle = "#eaffff";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 6, 13, 0, 0, TAU);
+      ctx.fill();
+      ctx.stroke();
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-3, -2);
+      ctx.quadraticCurveTo(0, -7, 3, -2);
+      ctx.stroke();
+      ctx.restore();
     }
   }
 
@@ -924,9 +1058,9 @@
     },
 
     infiniteScatter(boss, game, card) {
-      if (card.age % game.difficulty.scaleFireInterval(60) === 1) BOSS_PATTERNS.yellowDance(boss, game, card);
-      if (card.age % game.difficulty.scaleFireInterval(36) === 1) BOSS_PATTERNS.wavePollen(boss, game, card);
-      if (card.age % game.difficulty.scaleFireInterval(24) === 1) BOSS_PATTERNS.needleRain(boss, game, card);
+      BOSS_PATTERNS.yellowDance(boss, game, card);
+      BOSS_PATTERNS.wavePollen(boss, game, card);
+      BOSS_PATTERNS.needleRain(boss, game, card);
     },
   };
 
@@ -1497,10 +1631,13 @@
       this.difficulty = new DifficultyManager();
       this.score = new ScoreManager(this);
       this.life = new LifeManager(this);
+      this.power = new PowerManager();
       this.checkpoints = new CheckpointManager();
       this.save = new SaveManager();
+      this.difficulty.set(this.save.data.settings?.lastDifficulty || "normal");
       this.background = new BackgroundManager(BACKGROUND_STAGE1);
       this.audio = new AudioManager();
+      this.audio.fadeTo(this.save.data.settings?.volume ?? 0.5);
       this.titleMenu = new MenuManager(["START GAME", "DIFFICULTY", "HOW TO PLAY", "HIGH SCORE"].map((label) => ({ label })));
       this.pauseMenu = new MenuManager();
       this.gameOverMenu = new MenuManager();
@@ -1508,6 +1645,8 @@
       this.enemies = [];
       this.playerBullets = [];
       this.enemyBullets = [];
+      this.powerItems = [];
+      this.followers = [];
       this.particles = [];
       this.lasers = [];
       this.boss = null;
@@ -1557,6 +1696,7 @@
     start(fromCheckpoint = false, keepScore = false) {
       const startTime = fromCheckpoint ? this.checkpoints.currentPoint.time : 0;
       const preservedSpellCount = this.playerSpellCount;
+      const preservedPower = this.power.value;
       this.state.resetRun(startTime);
       if (!keepScore) {
         this.score.reset();
@@ -1568,6 +1708,8 @@
       this.enemies = [];
       this.playerBullets = [];
       this.enemyBullets = [];
+      this.powerItems = [];
+      this.followers = [];
       this.particles = [];
       this.lasers = [];
       this.boss = null;
@@ -1585,6 +1727,9 @@
       this.enemyBulletSpawnHistory = [];
       this.spellKeyHeld = false;
       this.spellPointerHeld = false;
+      if (keepScore) this.power.value = preservedPower;
+      else this.power.reset();
+      this.syncFollowers();
       this.life.reset();
       if (keepScore && fromCheckpoint) {
         this.life.lives = Math.max(1, this.life.lives);
@@ -1601,6 +1746,8 @@
       this.enemies = [];
       this.playerBullets = [];
       this.enemyBullets = [];
+      this.powerItems = [];
+      this.followers = [];
       this.lasers = [];
       this.boss = null;
       this.playerSpellTimer = 0;
@@ -1742,8 +1889,8 @@
     handleTitleKey(key) {
       if (key === "ArrowUp" || key === "w" || key === "W") this.titleMenu.move(-1);
       if (key === "ArrowDown" || key === "s" || key === "S") this.titleMenu.move(1);
-      if (this.titleMenu.selected()?.label === "DIFFICULTY" && (key === "ArrowLeft" || key === "a" || key === "A")) this.difficulty.next(-1);
-      if (this.titleMenu.selected()?.label === "DIFFICULTY" && (key === "ArrowRight" || key === "d" || key === "D")) this.difficulty.next(1);
+      if (this.titleMenu.selected()?.label === "DIFFICULTY" && (key === "ArrowLeft" || key === "a" || key === "A")) this.changeDifficulty(-1);
+      if (this.titleMenu.selected()?.label === "DIFFICULTY" && (key === "ArrowRight" || key === "d" || key === "D")) this.changeDifficulty(1);
       if (key === "z" || key === "Z" || key === " " || key === "Enter") this.activateTitleItem();
       if (key === "Escape") this.titlePanel = "main";
     }
@@ -1751,9 +1898,14 @@
     activateTitleItem() {
       const label = this.titleMenu.selected()?.label;
       if (label === "START GAME") this.start(false, false);
-      if (label === "DIFFICULTY") this.difficulty.next(1);
+      if (label === "DIFFICULTY") this.changeDifficulty(1);
       if (label === "HOW TO PLAY") this.titlePanel = this.titlePanel === "how" ? "main" : "how";
       if (label === "HIGH SCORE") this.titlePanel = this.titlePanel === "score" ? "main" : "score";
+    }
+
+    changeDifficulty(delta) {
+      this.difficulty.next(delta);
+      this.save.saveSettings({ lastDifficulty: this.difficulty.current });
     }
 
     openPauseMenu() {
@@ -1918,7 +2070,7 @@
     }
 
     readGamepad() {
-      if (!navigator.getGamepads) {
+      if (!navigator.getGamepads || this.save.data.settings?.gamepadEnabled === false) {
         this.resetGamepadInput();
         return;
       }
@@ -1997,13 +2149,13 @@
         this.gamepad.navCooldown = 12;
       }
       if (justPressed(14) || (xDir < 0 && canRepeat)) {
-        if (this.state.mode === "title" && this.titleMenu.selected()?.label === "DIFFICULTY") this.difficulty.next(-1);
+        if (this.state.mode === "title" && this.titleMenu.selected()?.label === "DIFFICULTY") this.changeDifficulty(-1);
         else if (menu.confirm) menu.confirm.choice = 0;
         else menu.move(-1);
         this.gamepad.navCooldown = 12;
       }
       if (justPressed(15) || (xDir > 0 && canRepeat)) {
-        if (this.state.mode === "title" && this.titleMenu.selected()?.label === "DIFFICULTY") this.difficulty.next(1);
+        if (this.state.mode === "title" && this.titleMenu.selected()?.label === "DIFFICULTY") this.changeDifficulty(1);
         else if (menu.confirm) menu.confirm.choice = 1;
         else menu.move(1);
         this.gamepad.navCooldown = 12;
@@ -2041,11 +2193,15 @@
         this.playerSpellTimer = Math.max(0, this.playerSpellTimer - 1);
         if (this.playerSpellTimer <= 0) this.endPlayerSpell();
       }
-      this.player.update(this.input, this.playerBullets);
+      this.player.update(this.input, this.playerBullets, this);
+      this.syncFollowers();
+      const slow = this.input.slow || this.input.gpSlow;
+      this.followers.forEach((follower) => follower.update(this.player, slow));
       this.updatePlayerSpell();
       this.spawnStageEnemies();
 
       this.enemies.forEach((e) => e.update(this));
+      this.powerItems.forEach((item) => item.update(this.player));
       this.playerBullets.forEach((b) => b.update());
       this.enemyBullets.forEach((b) => b.update());
       this.updateLasers();
@@ -2056,6 +2212,7 @@
       this.enemies = this.enemies.filter((e) => !e.offscreen() && e.hp > 0);
       this.playerBullets = this.playerBullets.filter((b) => !b.offscreen());
       this.enemyBullets = this.enemyBullets.filter((b) => !b.offscreen());
+      this.powerItems = this.powerItems.filter((item) => !item.collected && !item.offscreen());
       this.enemyBulletSpawnHistory.push(this.enemyBulletsSpawnedFrame);
       if (this.enemyBulletSpawnHistory.length > 60) this.enemyBulletSpawnHistory.shift();
     }
@@ -2082,6 +2239,17 @@
       this.player.invincible = Math.min(this.player.invincible, 20);
     }
 
+    syncFollowers() {
+      while (this.followers.length < this.power.stage) this.followers.push(new FollowerSlipper(this.followers.length));
+      if (this.followers.length > this.power.stage) this.followers.length = this.power.stage;
+    }
+
+    shootFollowers() {
+      for (const follower of this.followers) {
+        this.playerBullets.push(new Bullet(follower.x, follower.y - 12, 0, -8.4, 3, "player", "#8eeeff", { damage: 0.36 }));
+      }
+    }
+
     updatePlayerSpell() {
       if (!this.playerSpellActive || this.playerSpellTimer <= 0) return;
       this.player.invincible = Math.max(this.player.invincible, 3);
@@ -2095,10 +2263,33 @@
           if (e.hp <= 0) this.destroyEnemy(e);
         }
       }
+
+      for (const item of this.powerItems) {
+        if (item.collected || dist2(item, this.player) >= (item.r + this.player.r + 7) ** 2) continue;
+        item.collected = true;
+        const oldStage = this.power.stage;
+        const gained = this.power.add(item.amount);
+        if (gained === 0) addScore(this, item.amount >= 5 ? 2000 : 500);
+        this.syncFollowers();
+        if (this.power.stage > oldStage) this.state.showMessage(`随履 ${this.power.stage}足 展開`, 90);
+        this.spawnBurst(item.x, item.y, "#8eeeff", 10);
+      }
       if (this.boss && this.boss.entered && !this.boss.defeated) {
         if (Math.abs(this.boss.x - beam.x) < beam.w / 2 + this.boss.r && this.boss.y < beam.bottom) {
           this.boss.takeDamage(this, 1.25);
           if (this.playerSpellTimer % 12 === 0) this.spawnBurst(this.boss.x, this.boss.y, "#d7fbff", 8);
+        }
+      }
+      for (const followerBeam of this.getFollowerSpellBeams()) {
+        for (const e of this.enemies) {
+          if (e.destroyed) continue;
+          if (Math.abs(e.x - followerBeam.x) < followerBeam.w / 2 + e.r && e.y < followerBeam.bottom) {
+            e.hp -= 0.42;
+            if (e.hp <= 0) this.destroyEnemy(e);
+          }
+        }
+        if (this.boss && this.boss.entered && !this.boss.defeated && Math.abs(this.boss.x - followerBeam.x) < followerBeam.w / 2 + this.boss.r) {
+          this.boss.takeDamage(this, 0.14);
         }
       }
     }
@@ -2109,6 +2300,15 @@
         w: 92 + Math.sin(this.playerSpellTimer * 0.18) * 10,
         bottom: this.player.y - 12,
       };
+    }
+
+    getFollowerSpellBeams() {
+      if (!this.playerSpellActive) return [];
+      return this.followers.map((follower) => ({
+        x: follower.x,
+        w: 22,
+        bottom: follower.y - 8,
+      }));
     }
 
     spawnStageEnemies() {
@@ -2123,7 +2323,9 @@
 
       if (t >= 3420 && !this.boss) {
         this.boss = new Boss();
+        this.enemies = [];
         this.enemyBullets = [];
+        this.powerItems = [];
         this.state.showMessage("花粉濃度、異常上昇", 150);
       }
     }
@@ -2224,6 +2426,17 @@
       enemy.hp = 0;
       addScore(this, enemy.scoreValue);
       this.spawnBurst(enemy.x, enemy.y, "#f6d94e", enemy.type === "large" ? 24 : 14);
+      this.dropPowerItem(enemy);
+    }
+
+    dropPowerItem(enemy) {
+      const roll = Math.random();
+      if (enemy.type === "small" && roll < 0.15) this.powerItems.push(new PowerItem(enemy.x, enemy.y, 1));
+      if (enemy.type === "medium" && roll < 0.35) this.powerItems.push(new PowerItem(enemy.x, enemy.y, 1));
+      if (enemy.type === "large") {
+        this.powerItems.push(new PowerItem(enemy.x, enemy.y, 1));
+        if (roll < 0.2) this.powerItems.push(new PowerItem(enemy.x + 12, enemy.y, 5));
+      }
     }
 
     spawnBurst(x, y, color, count) {
@@ -2278,12 +2491,16 @@
 
       this.lasers.forEach((l) => this.drawLaser(l));
       this.enemies.forEach((e) => e.draw(ctx));
+      this.powerItems.forEach((item) => item.draw(ctx));
       if (this.boss) this.boss.draw(ctx);
       this.drawPlayerSpellEffects();
       this.playerBullets.forEach((b) => b.draw(ctx));
       this.enemyBullets.forEach((b) => b.draw(ctx));
       this.particles.forEach((p) => p.draw(ctx));
-      if (this.state.mode === "stage") this.player.draw(ctx, this.state.time);
+      if (this.state.mode === "stage") {
+        this.followers.forEach((follower) => follower.draw(ctx, this.state.time));
+        this.player.draw(ctx, this.state.time);
+      }
 
       ctx.restore();
       this.drawUi();
@@ -2316,6 +2533,13 @@
       ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
       ctx.lineWidth = 3;
       ctx.stroke();
+      for (const followerBeam of this.getFollowerSpellBeams()) {
+        const fg = ctx.createLinearGradient(followerBeam.x, 0, followerBeam.x, followerBeam.bottom);
+        fg.addColorStop(0, "rgba(126, 226, 255, 0.06)");
+        fg.addColorStop(1, "rgba(183, 247, 255, 0.72)");
+        ctx.fillStyle = fg;
+        ctx.fillRect(followerBeam.x - followerBeam.w / 2, 0, followerBeam.w, followerBeam.bottom);
+      }
       ctx.translate(beam.x, this.player.y - 58);
       ctx.rotate(-0.08);
       ctx.fillStyle = "rgba(190, 248, 255, 0.82)";
@@ -2437,6 +2661,8 @@
       ctx.font = "700 13px system-ui, sans-serif";
       ctx.textAlign = "left";
       ctx.fillText(`履技 x ${this.playerSpellCount}`, 12, 55);
+      ctx.fillStyle = "#9cefff";
+      ctx.fillText(`履力 ${this.power.label}  随履 x ${this.followers.length}`, 12, 74);
       ctx.textAlign = "right";
       ctx.fillText(`CP ${this.checkpoints.current}  CONT ${this.continueCount}`, W - 12, 55);
 

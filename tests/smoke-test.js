@@ -3,6 +3,22 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 
+const gradient = { addColorStop() {} };
+const drawingContext = new Proxy({
+  measureText(text) { return { width: String(text).length * 10 }; },
+  createLinearGradient() { return gradient; },
+  createRadialGradient() { return gradient; },
+}, {
+  get(target, property) {
+    if (property in target) return target[property];
+    return () => {};
+  },
+  set(target, property, value) {
+    target[property] = value;
+    return true;
+  },
+});
+
 function createElement(id = "") {
   return {
     id,
@@ -30,7 +46,7 @@ function createElement(id = "") {
     setAttribute(name, value) { this.attributes[name] = value; },
     appendChild() {},
     getBoundingClientRect() { return { left: 0, top: 0, width: 450, height: 800 }; },
-    getContext() { return {}; },
+    getContext() { return drawingContext; },
     setPointerCapture() {},
   };
 }
@@ -89,7 +105,7 @@ const sandbox = {
   },
   fetch: async () => ({
     ok: true,
-    json: async () => ({ version: "0.12.0", updates: [] }),
+    json: async () => ({ version: "0.13.0", updates: [] }),
   }),
   caches: { keys: async () => [] },
   requestAnimationFrame() {},
@@ -137,10 +153,15 @@ assert.ok(game.playerBullets.length > bulletCount, "normal shot must still work 
 
 game.playerSpellCount = 0;
 game.life.lives = 3;
+game.power.value = 10;
+game.syncFollowers();
 game.player.invincible = 0;
 game.player.hit(game);
 assert.equal(game.life.lives, 2, "hit should reduce one stock");
 assert.equal(game.playerSpellCount, 3, "losing a stock should refill spells");
+assert.equal(game.power.value, 5, "hit should reduce power by one follower tier");
+game.syncFollowers();
+assert.equal(game.followers.length, 1, "one follower should remain after power loss");
 
 game.enemies = [];
 game.spawnedWaves = new Set();
@@ -160,8 +181,42 @@ for (let i = 0; i < 300; i += 1) {
 }
 assert.equal(game.enemyBullets.length, 150, "normal bullet cap should be enforced");
 
+game.power.value = 20;
+game.syncFollowers();
+assert.equal(game.followers.length, 4, "maximum power should deploy four followers");
+const followerShotStart = game.playerBullets.length;
+game.shootFollowers();
+assert.equal(game.playerBullets.length - followerShotStart, 4, "all followers should shoot once");
+game.playerSpellActive = true;
+game.playerSpellTimer = 30;
+assert.equal(game.getFollowerSpellBeams().length, 4, "followers should add four small spell beams");
+game.endPlayerSpell();
+
+game.powerItems = [];
+game.destroyEnemy({ type: "large", x: 200, y: 200, destroyed: false, hp: 1, scoreValue: 1000 });
+assert.ok(game.powerItems.length >= 1, "large pollen should always drop a power item");
+
 game.dialogue.start("scene_boss");
 assert.equal(game.dialogue.resolvePortraitLine("left").portrait, "player.png");
 assert.equal(game.dialogue.resolvePortraitLine("right").portrait, "suginomikoto.png");
+game.enemyBullets = [];
+game.draw();
+game.dialogue.completeNow();
+
+game.state.mode = "stage";
+game.state.time = 3420;
+game.spawnStageEnemies();
+assert.ok(game.boss, "boss should spawn at the end of the stage");
+game.boss.entered = true;
+game.boss.beginCurrentCard(game);
+while (game.boss && !game.boss.defeated) {
+  game.boss.currentCard.hp = 0;
+  game.boss.nextCard(game);
+}
+assert.equal(game.dialogue.sceneName, "scene_clear", "boss defeat should start the clear dialogue");
+game.dialogue.completeNow();
+assert.equal(game.dialogue.sceneName, "scene_ending", "clear dialogue should lead to the ending");
+game.dialogue.completeNow();
+assert.equal(game.state.mode, "clear", "ending should finish on the clear screen");
 
 console.log("smoke test passed");
