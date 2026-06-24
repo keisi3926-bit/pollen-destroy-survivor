@@ -264,12 +264,16 @@ game.audio.onPowerItem = (detail) => {
 game.resolveCollisions();
 assert.equal(game.powerItems.includes(collectible), false, "collected power item should be removed immediately");
 assert.equal(collectible.collected, true, "collected flag should be set");
+assert.equal(collectible.active, false, "collected power item should become inactive");
 assert.equal(game.power.value, 1, "power value should increase once");
-assert.equal(game.followers.length, 1, "first power stage should deploy one follower");
+assert.equal(game.followers.length, 0, "power below the first threshold should not deploy a follower");
 assert.equal(powerSoundHook.amount, 1, "power item sound hook should receive item amount");
-assert.equal(powerSoundHook.stageChanged, true, "power item sound hook should receive stage change state");
+assert.equal(powerSoundHook.stageChanged, false, "power item sound hook should receive stage change state");
 assert.equal(game.collectPowerItem(collectible), false, "same power item must not be collected twice");
 assert.equal(game.power.value, 1, "duplicate collection must not increase power");
+game.power.value = 3;
+game.syncFollowers();
+assert.equal(game.followers.length, 1, "power threshold 3 should deploy the first follower");
 
 const shotCounts = [];
 for (let stage = 0; stage <= 4; stage += 1) {

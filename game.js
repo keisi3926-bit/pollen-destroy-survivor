@@ -53,6 +53,20 @@
     stageClear: 50000,
     bossDamage: 8,
   };
+  const POWER_CONFIG = {
+    maxPower: 20,
+    smallPValue: 1,
+    largePValue: 5,
+    maxSmallBonus: 500,
+    maxLargeBonus: 2500,
+  };
+  const POWER_LEVELS = [
+    { threshold: 0, level: 0 },
+    { threshold: 3, level: 1 },
+    { threshold: 7, level: 2 },
+    { threshold: 12, level: 3 },
+    { threshold: 20, level: 4 },
+  ];
   const ENEMY_BULLET_LIMITS = {
     easy: 95,
     normal: 150,
@@ -376,7 +390,7 @@
 
   class PowerManager {
     constructor() {
-      this.max = 20;
+      this.max = POWER_CONFIG.maxPower;
       this.value = 0;
     }
 
@@ -395,8 +409,11 @@
     }
 
     get stage() {
-      if (this.value <= 0) return 0;
-      return Math.min(4, Math.ceil(this.value / 5));
+      let level = 0;
+      for (const entry of POWER_LEVELS) {
+        if (this.value >= entry.threshold) level = entry.level;
+      }
+      return level;
     }
 
     get label() {
@@ -670,6 +687,7 @@
       this.fallSpeed = fallSpeed;
       this.age = 0;
       this.collected = false;
+      this.active = true;
       this.autoCollect = false;
     }
 
@@ -699,6 +717,7 @@
     }
 
     draw(ctx) {
+      if (!this.active || this.collected) return;
       ctx.save();
       ctx.translate(this.x, this.y);
       const pulse = 1 + Math.sin(this.age * 0.15) * 0.08;
@@ -726,6 +745,7 @@
     }
 
     draw(ctx) {
+      if (!this.active || this.collected) return;
       ctx.save();
       ctx.translate(this.x, this.y);
       ctx.rotate(Math.PI / 4 + Math.sin(this.age * 0.08) * 0.08);
@@ -2354,8 +2374,8 @@
       this.enemies = this.enemies.filter((e) => !e.offscreen() && e.hp > 0);
       this.playerBullets = this.playerBullets.filter((b) => !b.offscreen());
       this.enemyBullets = this.enemyBullets.filter((b) => !b.offscreen());
-      this.powerItems = this.powerItems.filter((item) => !item.collected && !item.offscreen());
-      this.pointItems = this.pointItems.filter((item) => !item.collected && !item.offscreen());
+      this.powerItems = this.powerItems.filter((item) => item.active && !item.collected && !item.offscreen());
+      this.pointItems = this.pointItems.filter((item) => item.active && !item.collected && !item.offscreen());
       this.enemyBulletSpawnHistory.push(this.enemyBulletsSpawnedFrame);
       if (this.enemyBulletSpawnHistory.length > 60) this.enemyBulletSpawnHistory.shift();
     }
@@ -2573,19 +2593,25 @@
     }
 
     collectPowerItem(item) {
-      if (item.collected) return false;
+      if (!item.active || item.collected) return false;
       item.collected = true;
+      item.active = false;
       const oldStage = this.power.stage;
       const gained = this.power.add(item.amount);
       const stageChanged = this.power.stage > oldStage;
+      const reachedMax = this.power.stage === 4 && oldStage < 4;
 
       if (gained === 0) {
-        addScore(this, item.amount >= 5 ? 2000 : 500);
+        addScore(this, item.amount >= POWER_CONFIG.largePValue ? POWER_CONFIG.maxLargeBonus : POWER_CONFIG.maxSmallBonus);
         this.state.showMessage("POWER MAX BONUS", 75);
       } else {
         this.syncFollowers();
-        this.state.showMessage(stageChanged ? `POWER UP！ 随履 ${this.power.stage}足` : `POWER UP +${gained}`, 90);
-        this.powerUpFlash = stageChanged ? 24 : 12;
+        this.state.showMessage(reachedMax ? "POWER MAX！" : stageChanged ? `POWER UP！ 随履 ${this.power.stage}足` : `POWER UP +${gained}`, 90);
+        this.powerUpFlash = reachedMax ? 38 : stageChanged ? 26 : 12;
+        if (stageChanged) {
+          this.state.shake = Math.max(this.state.shake, reachedMax ? 9 : 4);
+          this.spawnBurst(this.player.x, this.player.y, "#ffe477", reachedMax ? 42 : 24);
+        }
       }
 
       this.audio.playPowerItem(item.amount, stageChanged);
@@ -2594,8 +2620,9 @@
     }
 
     collectPointItem(item) {
-      if (item.collected) return false;
+      if (!item.active || item.collected) return false;
       item.collected = true;
+      item.active = false;
       addScore(this, item.scoreValue);
       this.spawnBurst(item.x, item.y, "#d58cff", 10);
       return true;
@@ -2613,11 +2640,11 @@
 
     dropPowerItem(enemy) {
       const roll = Math.random();
-      if (enemy.type === "small" && roll < 0.15) this.powerItems.push(new PowerItem(enemy.x, enemy.y, 1));
-      if (enemy.type === "medium" && roll < 0.35) this.powerItems.push(new PowerItem(enemy.x, enemy.y, 1));
+      if (enemy.type === "small" && roll < 0.15) this.powerItems.push(new PowerItem(enemy.x, enemy.y, POWER_CONFIG.smallPValue));
+      if (enemy.type === "medium" && roll < 0.35) this.powerItems.push(new PowerItem(enemy.x, enemy.y, POWER_CONFIG.smallPValue));
       if (enemy.type === "large") {
-        this.powerItems.push(new PowerItem(enemy.x, enemy.y, 1));
-        if (roll < 0.2) this.powerItems.push(new PowerItem(enemy.x + 12, enemy.y, 5));
+        this.powerItems.push(new PowerItem(enemy.x, enemy.y, POWER_CONFIG.smallPValue));
+        if (roll < 0.2) this.powerItems.push(new PowerItem(enemy.x + 12, enemy.y, POWER_CONFIG.largePValue));
       }
     }
 
@@ -2705,15 +2732,16 @@
 
     drawPowerUpFlash() {
       if (this.powerUpFlash <= 0) return;
-      const progress = this.powerUpFlash / 24;
+      const maxFrames = this.powerUpFlash > 26 ? 38 : 26;
+      const progress = this.powerUpFlash / maxFrames;
       ctx.save();
-      ctx.fillStyle = `rgba(137, 239, 255, ${progress * 0.14})`;
+      ctx.fillStyle = `rgba(255, 220, 82, ${progress * 0.2})`;
       ctx.fillRect(0, 0, W, H);
       ctx.globalAlpha = Math.min(1, progress * 1.8);
-      ctx.fillStyle = "#f2ffff";
-      ctx.font = "900 30px system-ui, sans-serif";
+      ctx.fillStyle = "#fff5b0";
+      ctx.font = `900 ${maxFrames === 38 ? 38 : 30}px system-ui, sans-serif`;
       ctx.textAlign = "center";
-      ctx.fillText("POWER UP", W / 2, H * 0.42);
+      ctx.fillText(maxFrames === 38 ? "POWER MAX!" : "POWER UP!", W / 2, H * 0.42);
       ctx.restore();
     }
 
