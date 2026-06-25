@@ -90,7 +90,7 @@
     scorePerGraze: 50,
     milestones: [100, 500, 1000],
   };
-  const APP_VERSION = "0.25.0";
+  const APP_VERSION = "0.26.0";
   const FIXED_STEP_SECONDS = 1 / 60;
   const BOSS_DAMAGE_MULTIPLIER = 0.68;
   const INITIAL_CONTINUES = 3;
@@ -157,6 +157,7 @@
       spawnMultiplier: 0.65,
       safeGapMultiplier: 1.35,
       initialLives: 3,
+      survivalTime: 75,
     },
     normal: {
       label: "NORMAL",
@@ -168,6 +169,7 @@
       spawnMultiplier: 0.8,
       safeGapMultiplier: 1.15,
       initialLives: 3,
+      survivalTime: 60,
     },
     hard: {
       label: "HARD",
@@ -179,6 +181,7 @@
       spawnMultiplier: 1.05,
       safeGapMultiplier: 1.0,
       initialLives: 3,
+      survivalTime: 45,
     },
   };
 
@@ -1147,7 +1150,7 @@
       pattern,
       type = "spell",
       survival = false,
-      survivalDuration = 30,
+      survivalTimeMultiplier = 1,
       onStart = null,
       onUpdate = null,
       onEnd = null,
@@ -1159,8 +1162,9 @@
       this.pattern = pattern;
       this.type = type;
       this.survival = survival;
-      this.survivalDuration = survivalDuration;
-      this.survivalTimer = survival ? survivalDuration : 0;
+      this.survivalTimeMultiplier = survivalTimeMultiplier;
+      this.survivalDuration = 0;
+      this.survivalTimer = 0;
       this.frenzy = false;
       this.frenzyAnnounced = false;
       this.failed = false;
@@ -1180,7 +1184,10 @@
       this.failed = false;
       this.lastCountdownSecond = null;
       this.resolved = false;
-      this.survivalTimer = this.survival ? this.survivalDuration : 0;
+      this.survivalDuration = this.survival
+        ? game.difficulty.config.survivalTime * this.survivalTimeMultiplier
+        : 0;
+      this.survivalTimer = this.survivalDuration;
       if (this.onStart) this.onStart(boss, game, this);
     }
 
@@ -1404,7 +1411,7 @@
           hp: 1,
           pattern: "infiniteScatter",
           survival: true,
-          survivalDuration: 30,
+          survivalTimeMultiplier: 1,
         }),
         new SpellCard({ name: "終神威「杉並木封鎖」", duration: 2400, hp: 620, pattern: "infiniteScatter" }),
       ];
@@ -3860,12 +3867,13 @@
           const rest = card.survival
             ? Math.max(0, Math.ceil(card.survivalTimer))
             : Math.max(0, Math.ceil((card.duration - card.age) / 60));
-          ctx.fillStyle = "rgba(8, 18, 15, 0.76)";
+          const survivalUrgent = card.survival && card.survivalTimer <= 10;
+          ctx.fillStyle = survivalUrgent ? "rgba(102, 18, 14, 0.86)" : "rgba(8, 18, 15, 0.76)";
           ctx.fillRect(78, 88, W - 156, 28);
-          ctx.fillStyle = "#fff1a8";
-          ctx.font = "800 15px system-ui, sans-serif";
+          ctx.fillStyle = survivalUrgent ? "#fff0e8" : "#fff1a8";
+          ctx.font = `800 ${survivalUrgent ? 18 : 15}px system-ui, sans-serif`;
           ctx.textAlign = "center";
-          ctx.fillText(card.survival ? `SURVIVE  ${rest} sec` : `${card.name}  ${rest}`, W / 2, 108);
+          ctx.fillText(card.survival ? `SURVIVE  ${rest}` : `${card.name}  ${rest}`, W / 2, 108);
         }
       }
 
