@@ -1,8 +1,13 @@
 {
-  "version": "0.26.1",
+  "version": "0.30.0",
   "build": "2026-06-25",
   "status": "MVP公開準備版",
   "updates": [
+    {
+      "version": "0.30.0",
+      "date": "2026-06-25",
+      "summary": "Stage2「二面 檜風街道」とヒノキ将軍を追加。ヒノキ雑魚、専用背景・立ち絵・カットイン、三神威、Stage2クリア保存、Stage3 COMING SOON、データ駆動ステージ定義へ対応。"
+    },
     {
       "version": "0.26.1",
       "date": "2026-06-25",
@@ -166,13 +171,19 @@
     "version.json",
     "sw.js",
     "assets/backgrounds/stage1_pollen_sando.png",
+    "assets/backgrounds/stage2_hinoki_road.jpg",
     "assets/audio/stage1_spring_pollen_path.mp3",
     "assets/audio/boss_suginomikoto.mp3",
+    "assets/audio/stage2_theme.mp3",
+    "assets/audio/boss2_theme.mp3",
     "assets/characters/player.png",
     "assets/characters/suginomikoto.png",
+    "assets/characters/hinoki_shogun.png",
     "assets/enemies/pollen_enemies.png",
+    "assets/enemies/hinoki_enemies.png",
     "assets/cutin/haou_slipper_nova.png",
     "assets/cutin/suginomikoto_divine_attack.png",
+    "assets/cutin/hinoki_shogun_divine_attack.png",
     "tools/generate_se.py",
     "assets/audio/se/",
     "assets/characters/.gitkeep"

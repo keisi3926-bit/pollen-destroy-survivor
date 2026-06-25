@@ -115,18 +115,24 @@ sw.js
 assets/
   backgrounds/
     stage1_pollen_sando.png
+    stage2_hinoki_road.jpg
   audio/
     stage1_spring_pollen_path.mp3
     boss_suginomikoto.mp3
+    stage2_theme.mp3
+    boss2_theme.mp3
   characters/
     player.png
     suginomikoto.png
+    hinoki_shogun.png
     .gitkeep
   enemies/
     pollen_enemies.png
+    hinoki_enemies.png
   cutin/
     haou_slipper_nova.png
     suginomikoto_divine_attack.png
+    hinoki_shogun_divine_attack.png
   audio/
     se/
       *.wav
@@ -158,6 +164,11 @@ python -m http.server 8000
 ```
 
 その後、ブラウザで `http://localhost:8000/` を開きます。
+
+## Stage2 BGM
+
+`assets/audio/stage2_theme.mp3` と `assets/audio/boss2_theme.mp3` は、専用音源を受け取るまでの仮BGMです。
+同じファイル名で差し替えれば、ゲームコードを変更せずStage2道中曲・ボス曲を更新できます。
 
 ## SE再生成
 

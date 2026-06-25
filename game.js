@@ -26,12 +26,17 @@
   };
   const PORTRAIT_BASE = "assets/characters/";
   const BACKGROUND_STAGE1 = "assets/backgrounds/stage1_pollen_sando.png";
+  const BACKGROUND_STAGE2 = "assets/backgrounds/stage2_hinoki_road.jpg";
   const BGM_STAGE1 = "assets/audio/stage1_spring_pollen_path.mp3";
-  const BGM_BOSS = "assets/audio/boss_suginomikoto.mp3";
+  const BGM_BOSS1 = "assets/audio/boss_suginomikoto.mp3";
+  const BGM_STAGE2 = "assets/audio/stage2_theme.mp3";
+  const BGM_BOSS2 = "assets/audio/boss2_theme.mp3";
   const AUDIO_SETTINGS_KEY = "pollenDestroySlipperAudioSettings";
   const BGM_SOURCES = {
-    stage: BGM_STAGE1,
-    boss: BGM_BOSS,
+    stage1: BGM_STAGE1,
+    boss1: BGM_BOSS1,
+    stage2: BGM_STAGE2,
+    boss2: BGM_BOSS2,
   };
   const SE_NAMES = [
     "item_p_small",
@@ -71,9 +76,12 @@
   };
   const PLAYER_ASSET = "assets/characters/player.png";
   const BOSS_ASSET = "assets/characters/suginomikoto.png";
+  const HINOKI_BOSS_ASSET = "assets/characters/hinoki_shogun.png";
   const POLLEN_ENEMY_ASSET = "assets/enemies/pollen_enemies.png";
+  const HINOKI_ENEMY_ASSET = "assets/enemies/hinoki_enemies.png";
   const SLIPPER_NOVA_CUTIN_ASSET = "assets/cutin/haou_slipper_nova.png";
   const SUGINOMIKOTO_CUTIN_ASSET = "assets/cutin/suginomikoto_divine_attack.png";
+  const HINOKI_SHOGUN_CUTIN_ASSET = "assets/cutin/hinoki_shogun_divine_attack.png";
   const PLAYER_CUTIN_FRAMES = 82;
   const BOSS_CUTIN_FRAMES = 74;
   const MOBILE_CONTROLS = {
@@ -90,7 +98,7 @@
     scorePerGraze: 50,
     milestones: [100, 500, 1000],
   };
-  const APP_VERSION = "0.26.1";
+  const APP_VERSION = "0.30.0";
   const FIXED_STEP_SECONDS = 1 / 60;
   const BOSS_DAMAGE_MULTIPLIER = 0.68;
   const INITIAL_CONTINUES = 3;
@@ -145,6 +153,20 @@
     { time: 2990, pattern: "largeEscort" },
     { time: 3240, pattern: "smallFinale" },
   ];
+  const STAGE2_WAVES = [
+    { time: 100, pattern: "hinokiVanguard" },
+    { time: 340, pattern: "hinokiWing" },
+    { time: 610, pattern: "mixedFan" },
+    { time: 900, pattern: "hinokiSweep" },
+    { time: 1180, pattern: "hinokiHeavyEscort" },
+    { time: 1480, pattern: "pollenInterlude" },
+    { time: 1760, pattern: "hinokiFormation" },
+    { time: 2060, pattern: "mixedCross" },
+    { time: 2380, pattern: "hinokiWing" },
+    { time: 2670, pattern: "hinokiHeavyEscort" },
+    { time: 2960, pattern: "hinokiFanFinale" },
+    { time: 3280, pattern: "hinokiGuard" },
+  ];
   const EXTEND_THRESHOLDS = [30000, 80000, 150000];
   const DIFFICULTY_CONFIG = {
     easy: {
@@ -182,6 +204,81 @@
       safeGapMultiplier: 1.0,
       initialLives: 3,
       survivalTime: 45,
+    },
+  };
+
+  const STAGE_DEFINITIONS = {
+    stage1: {
+      id: "stage1",
+      title: "一面 春の花粉参道",
+      selectLabel: "STAGE 1　春の花粉参道",
+      background: BACKGROUND_STAGE1,
+      bgm: "stage1",
+      bossBgm: "boss1",
+      waves: STAGE_WAVES,
+      bossTime: 3420,
+      warning: "花粉濃度、異常上昇",
+      enemyFamily: "pollen",
+      introScene: "scene_intro",
+      bossScene: "scene_boss",
+      clearScene: "scene_clear",
+      endingScene: "scene_ending",
+      clearMessage: "花粉、滅殺完了！",
+      boss: {
+        name: "スギノミコト",
+        asset: BOSS_ASSET,
+        cutin: SUGINOMIKOTO_CUTIN_ASSET,
+        cutinLabel: "SUGINOMIKOTO",
+        imageCrop: { sx: 0, sy: 0, sw: 1024, sh: 1536 },
+        spellCards: [
+          { name: "Phase 1 通常弾幕", duration: 720, hp: 360, pattern: "normalSpread", type: "normal" },
+          {
+            name: "大神威「無限飛散」",
+            duration: 1800,
+            hp: 1,
+            pattern: "infiniteScatter",
+            survival: true,
+            survivalTimeMultiplier: 1,
+          },
+          { name: "終神威「杉並木封鎖」", duration: 2400, hp: 620, pattern: "infiniteScatter" },
+        ],
+      },
+    },
+    stage2: {
+      id: "stage2",
+      title: "二面　檜風街道",
+      selectLabel: "STAGE 2　檜風街道",
+      background: BACKGROUND_STAGE2,
+      bgm: "stage2",
+      bossBgm: "boss2",
+      waves: STAGE2_WAVES,
+      bossTime: 3500,
+      warning: "檜の風圧、街道を封鎖",
+      enemyFamily: "hinoki",
+      introScene: "scene2_intro",
+      bossScene: "scene2_boss",
+      clearScene: "scene2_clear",
+      endingScene: "scene2_ending",
+      clearMessage: "檜軍、突破完了！",
+      boss: {
+        name: "ヒノキ将軍",
+        asset: HINOKI_BOSS_ASSET,
+        cutin: HINOKI_SHOGUN_CUTIN_ASSET,
+        cutinLabel: "HINOKI SHOGUN",
+        imageCrop: null,
+        spellCards: [
+          { name: "第一神威「檜扇陣」", duration: 840, hp: 430, pattern: "hinokiFan", type: "normal" },
+          {
+            name: "第二神威「檜風耐陣」",
+            duration: 1800,
+            hp: 1,
+            pattern: "hinokiSurvival",
+            survival: true,
+            survivalTimeMultiplier: 1,
+          },
+          { name: "第三神威「千檜封鎖」", duration: 2520, hp: 760, pattern: "hinokiFinal" },
+        ],
+      },
     },
   };
 
@@ -344,6 +441,28 @@
       { speaker: "player", text: "まだ終わりじゃない。", portrait: "player.png", side: "left" },
       { speaker: "player", text: "次の敵が待っている。", portrait: "player.png", side: "left" },
       { speaker: "system", text: "King of Slipper 外伝は続く。", portrait: "player.png", side: "left" },
+    ],
+    scene2_intro: [
+      { speaker: "player", text: "杉を越えた先まで、鼻がむずむずする。", portrait: "player.png", side: "left" },
+      { speaker: "player", text: "今度は檜か。春は層が厚いな。", portrait: "player.png", side: "left" },
+      { speaker: "player", text: "街道ごと、叩いて通る。", portrait: "player.png", side: "left" },
+    ],
+    scene2_boss: [
+      { speaker: "boss", text: "止まれ、黒き履物の王。", portrait: "hinoki_shogun.png", side: "right" },
+      { speaker: "player", text: "道を塞ぐなら、将軍でも叩く。", portrait: "player.png", side: "left" },
+      { speaker: "boss", text: "我が檜軍は、杉のようには散らぬ。", portrait: "hinoki_shogun.png", side: "right" },
+      { speaker: "player", text: "鼻には同じだ。", portrait: "player.png", side: "left" },
+      { speaker: "boss", text: "ならば受けよ。檜風の陣。", portrait: "hinoki_shogun.png", side: "right" },
+    ],
+    scene2_clear: [
+      { speaker: "boss", text: "見事……この街道、通るがよい。", portrait: "hinoki_shogun.png", side: "right" },
+      { speaker: "player", text: "次からは花粉を減らしておけ。", portrait: "player.png", side: "left" },
+      { speaker: "boss", text: "それは軍議にかけよう。", portrait: "hinoki_shogun.png", side: "right" },
+    ],
+    scene2_ending: [
+      { speaker: "system", text: "STAGE 2 CLEAR", portrait: "player.png", side: "left" },
+      { speaker: "player", text: "杉、檜。次は何だ。", portrait: "player.png", side: "left" },
+      { speaker: "system", text: "STAGE 3 COMING SOON", portrait: "player.png", side: "left" },
     ],
   };
 
@@ -515,9 +634,9 @@
         normal: { highScore: 0, maxCheckpoint: 0, cleared: false, continues: 0 },
         hard: { highScore: 0, maxCheckpoint: 0, cleared: false, continues: 0 },
         highScores: {
-          easy: { stage1: 0, total: 0 },
-          normal: { stage1: 0, total: 0 },
-          hard: { stage1: 0, total: 0 },
+          easy: { stage1: 0, stage2: 0, total: 0 },
+          normal: { stage1: 0, stage2: 0, total: 0 },
+          hard: { stage1: 0, stage2: 0, total: 0 },
         },
         clearFlags: { stage1: false, stage2: false },
         settings: { lastDifficulty: "normal", volume: 0.5, gamepadEnabled: true },
@@ -553,7 +672,7 @@
       }
     }
 
-    saveRun(difficulty, score, checkpoint, cleared, continues) {
+    saveRun(difficulty, stageId, score, checkpoint, cleared, continues) {
       const current = this.data[difficulty] || this.defaultData()[difficulty];
       current.highScore = Math.max(current.highScore || 0, score);
       current.maxCheckpoint = Math.max(current.maxCheckpoint || 0, checkpoint);
@@ -561,9 +680,9 @@
       current.continues = Math.max(current.continues || 0, continues);
       this.data[difficulty] = current;
       const difficultyScores = this.data.highScores[difficulty];
-      difficultyScores.stage1 = Math.max(difficultyScores.stage1 || 0, score);
+      difficultyScores[stageId] = Math.max(difficultyScores[stageId] || 0, score);
       difficultyScores.total = Math.max(difficultyScores.total || 0, score);
-      if (cleared) this.data.clearFlags.stage1 = true;
+      if (cleared) this.data.clearFlags[stageId] = true;
       localStorage.setItem(this.key, JSON.stringify(this.data));
     }
 
@@ -1050,18 +1169,26 @@
   }
 
   const pollenSpriteSheet = new PollenSpriteSheet(POLLEN_ENEMY_ASSET);
+  const hinokiSpriteSheet = new PollenSpriteSheet(HINOKI_ENEMY_ASSET);
   const POLLEN_ENEMY_CONFIG = {
     small: { radius: 12, hp: 5, speed: 2.15, fireInterval: 155, score: SCORE_VALUES.enemySmall },
     medium: { radius: 18, hp: 12, speed: 1.3, fireInterval: 132, score: SCORE_VALUES.enemyMedium },
     large: { radius: 29, hp: 34, speed: 0.78, fireInterval: 112, score: SCORE_VALUES.enemyLarge },
   };
+  const HINOKI_ENEMY_CONFIG = {
+    small: { radius: 13, hp: 7, speed: 2.25, fireInterval: 142, score: 140 },
+    medium: { radius: 19, hp: 15, speed: 1.42, fireInterval: 118, score: 380 },
+    large: { radius: 31, hp: 42, speed: 0.86, fireInterval: 98, score: 1250 },
+  };
 
   class Enemy {
-    constructor(x, y, type = "medium", movement = "drift") {
-      const config = POLLEN_ENEMY_CONFIG[type] || POLLEN_ENEMY_CONFIG.medium;
+    constructor(x, y, type = "medium", movement = "drift", family = "pollen") {
+      const configSet = family === "hinoki" ? HINOKI_ENEMY_CONFIG : POLLEN_ENEMY_CONFIG;
+      const config = configSet[type] || configSet.medium;
       this.x = x;
       this.y = y;
       this.type = type;
+      this.family = family;
       this.movement = movement;
       this.age = 0;
       this.r = config.radius;
@@ -1081,6 +1208,9 @@
       } else if (this.movement === "zigzag") {
         this.x = this.baseX + Math.sin(this.age * 0.075) * 48;
         this.y += this.speed * 1.05;
+      } else if (this.movement === "wing") {
+        this.x = this.baseX + Math.sin(this.age * 0.038) * 96;
+        this.y += this.speed * 0.92;
       } else {
         this.y += this.speed;
       }
@@ -1090,25 +1220,29 @@
     }
 
     fire(game) {
-      const config = POLLEN_ENEMY_CONFIG[this.type];
+      const configSet = this.family === "hinoki" ? HINOKI_ENEMY_CONFIG : POLLEN_ENEMY_CONFIG;
+      const config = configSet[this.type];
       const playerHit = game.player.hitPoint;
       const aim = Math.atan2(playerHit.y - this.y, playerHit.x - this.x);
+      const colors = this.family === "hinoki"
+        ? { small: "#9ee06a", medium: "#71c86b", large: "#d5e36a" }
+        : { small: "#f4c64e", medium: "#f0bd42", large: "#f2a93c" };
       if (this.type === "small") {
-        const speed = game.difficulty.scaleSpeed(1.72);
-        game.spawnEnemyBullet(new Bullet(this.x, this.y, Math.cos(aim) * speed, Math.sin(aim) * speed, 5, "enemy", "#f4c64e"));
+        const speed = game.difficulty.scaleSpeed(this.family === "hinoki" ? 1.86 : 1.72);
+        game.spawnEnemyBullet(new Bullet(this.x, this.y, Math.cos(aim) * speed, Math.sin(aim) * speed, 5, "enemy", colors.small));
       } else if (this.type === "medium") {
-        const count = game.difficulty.current === "easy" ? 1 : 3;
+        const count = game.difficulty.current === "easy" ? (this.family === "hinoki" ? 2 : 1) : 3;
         for (let i = 0; i < count; i += 1) {
-          const offset = count === 1 ? 0 : (i - 1) * 0.18;
-          const speed = game.difficulty.scaleSpeed(1.58);
-          game.spawnEnemyBullet(new Bullet(this.x, this.y, Math.cos(aim + offset) * speed, Math.sin(aim + offset) * speed, 5, "enemy", "#f0bd42"));
+          const offset = count === 1 ? 0 : (i - (count - 1) / 2) * 0.18;
+          const speed = game.difficulty.scaleSpeed(this.family === "hinoki" ? 1.72 : 1.58);
+          game.spawnEnemyBullet(new Bullet(this.x, this.y, Math.cos(aim + offset) * speed, Math.sin(aim + offset) * speed, 5, "enemy", colors.medium));
         }
       } else {
-        const count = game.difficulty.scaleCount(7);
+        const count = game.difficulty.scaleCount(this.family === "hinoki" ? 9 : 7);
         for (let i = 0; i < count; i += 1) {
           const offset = (i - (count - 1) / 2) * 0.15;
-          const speed = game.difficulty.scaleSpeed(1.42 + (i % 2) * 0.12);
-          game.spawnEnemyBullet(new Bullet(this.x, this.y, Math.cos(aim + offset) * speed, Math.sin(aim + offset) * speed, 6, "enemy", "#f2a93c"));
+          const speed = game.difficulty.scaleSpeed((this.family === "hinoki" ? 1.52 : 1.42) + (i % 2) * 0.12);
+          game.spawnEnemyBullet(new Bullet(this.x, this.y, Math.cos(aim + offset) * speed, Math.sin(aim + offset) * speed, 6, "enemy", colors.large));
         }
       }
       this.fireCooldown = game.difficulty.scaleFireInterval(config.fireInterval + Math.floor(Math.random() * 30));
@@ -1119,7 +1253,8 @@
       ctx.translate(this.x, this.y);
       const bob = Math.sin(this.age * 0.09) * 2;
       ctx.translate(0, bob);
-      if (pollenSpriteSheet.draw(ctx, this.type)) {
+      const spriteSheet = this.family === "hinoki" ? hinokiSpriteSheet : pollenSpriteSheet;
+      if (spriteSheet.draw(ctx, this.type)) {
         ctx.restore();
         return;
       }
@@ -1331,6 +1466,68 @@
         }
       }
     },
+
+    hinokiFan(boss, game, card) {
+      if (card.age % game.difficulty.scaleFireInterval(54) !== 1) return;
+      const playerHit = game.player.hitPoint;
+      const base = Math.atan2(playerHit.y - boss.y, playerHit.x - boss.x);
+      const count = game.difficulty.scaleCount(9);
+      for (let i = 0; i < count; i += 1) {
+        const offset = (i - (count - 1) / 2) * 0.13;
+        const speed = game.difficulty.scaleSpeed(1.46 + (i % 3) * 0.13);
+        game.spawnEnemyBullet(new Bullet(
+          boss.x,
+          boss.y + 18,
+          Math.cos(base + offset) * speed,
+          Math.sin(base + offset) * speed,
+          5,
+          "enemy",
+          i % 2 ? "#8edb72" : "#d6e66e",
+          { shape: i % 3 === 0 ? "needle" : "orb" }
+        ));
+      }
+    },
+
+    hinokiSurvival(boss, game, card) {
+      BOSS_PATTERNS.hinokiFan(boss, game, card);
+      if (card.age % game.difficulty.scaleFireInterval(86) !== 1) return;
+      const count = game.difficulty.scaleCount(18);
+      const gap = Math.floor(card.age / 86) % count;
+      for (let i = 0; i < count; i += 1) {
+        if (Math.abs(i - gap) <= 2) continue;
+        const angle = (i / count) * TAU + card.age * 0.011;
+        const speed = game.difficulty.scaleSpeed(0.98 + (i % 2) * 0.16);
+        game.spawnEnemyBullet(new Bullet(
+          boss.x,
+          boss.y,
+          Math.cos(angle) * speed,
+          Math.sin(angle) * speed,
+          5,
+          "enemy",
+          "#a8df6b"
+        ));
+      }
+    },
+
+    hinokiFinal(boss, game, card) {
+      BOSS_PATTERNS.hinokiFan(boss, game, card);
+      BOSS_PATTERNS.needleRain(boss, game, card);
+      if (card.age % game.difficulty.scaleFireInterval(card.frenzy ? 58 : 92) !== 1) return;
+      const count = game.difficulty.scaleCount(card.frenzy ? 24 : 16);
+      for (let i = 0; i < count; i += 1) {
+        const angle = (i / count) * TAU - card.age * (card.frenzy ? 0.026 : 0.016);
+        const speed = game.difficulty.scaleSpeed(1.08 + (i % 3) * 0.14);
+        game.spawnEnemyBullet(new Bullet(
+          boss.x,
+          boss.y,
+          Math.cos(angle) * speed,
+          Math.sin(angle) * speed,
+          5,
+          "enemy",
+          card.frenzy ? "#e4ef65" : "#78d06a"
+        ));
+      }
+    },
   };
 
   const BOSS_SPELL_LIBRARY = [
@@ -1343,7 +1540,8 @@
   ];
 
   class Boss {
-    constructor() {
+    constructor(definition = STAGE_DEFINITIONS.stage1.boss) {
+      this.definition = definition;
       this.x = W / 2;
       this.y = -95;
       this.r = 42;
@@ -1354,7 +1552,7 @@
       this.defeated = false;
       this.transitioning = false;
       this.invincible = false;
-      this.name = DIALOGUE_CONTEXT.bossName;
+      this.name = definition.name;
       this.spellCards = this.createSpellCards();
       this.cardIndex = 0;
       this.currentCard = this.spellCards[0];
@@ -1365,7 +1563,7 @@
       this.image.onload = () => {
         this.imageLoaded = true;
       };
-      this.image.src = `${BOSS_ASSET}?v=${APP_VERSION}`;
+      this.image.src = `${definition.asset}?v=${APP_VERSION}`;
     }
 
     update(game, deltaTime = FIXED_STEP_SECONDS) {
@@ -1377,10 +1575,11 @@
           this.entered = true;
           this.dialogueStarted = true;
           this.attackAge = 0;
-          game.startDialogue("scene_boss", () => {
+          game.startDialogue(game.currentStage.bossScene, () => {
             game.state.bossNameTimer = 170;
             game.state.showMessage("戦闘開始", 90);
-            game.audio.playBoss();
+            game.audio.playBoss(game.currentStage.bossBgm);
+            if (game.currentStageId === "stage2") game.startBossSpellCutin("ヒノキ将軍・檜風開陣");
             this.beginCurrentCard(game);
           });
         }
@@ -1403,18 +1602,7 @@
     }
 
     createSpellCards() {
-      return [
-        new SpellCard({ name: "Phase 1 通常弾幕", duration: 720, hp: 360, pattern: "normalSpread", type: "normal" }),
-        new SpellCard({
-          name: "大神威「無限飛散」",
-          duration: 1800,
-          hp: 1,
-          pattern: "infiniteScatter",
-          survival: true,
-          survivalTimeMultiplier: 1,
-        }),
-        new SpellCard({ name: "終神威「杉並木封鎖」", duration: 2400, hp: 620, pattern: "infiniteScatter" }),
-      ];
+      return this.definition.spellCards.map((card) => new SpellCard(card));
     }
 
     beginCurrentCard(game) {
@@ -1552,7 +1740,12 @@
       ctx.beginPath();
       ctx.roundRect(-50, -72, 100, 144, 12);
       ctx.clip();
-      ctx.drawImage(this.image, 0, 0, 1024, 1536, -48, -72, 96, 144);
+      const crop = this.definition.imageCrop;
+      if (crop) {
+        ctx.drawImage(this.image, crop.sx, crop.sy, crop.sw, crop.sh, -48, -72, 96, 144);
+      } else {
+        ctx.drawImage(this.image, 0, 0, this.image.width, this.image.height, -48, -72, 96, 144);
+      }
       ctx.restore();
 
       ctx.fillStyle = "rgba(255, 248, 181, 0.88)";
@@ -1835,6 +2028,12 @@
       this.image = new Image();
       this.loaded = false;
       this.failed = false;
+      this.setSource(src);
+    }
+
+    setSource(src) {
+      this.loaded = false;
+      this.failed = false;
       this.image.onload = () => {
         this.loaded = true;
       };
@@ -2091,12 +2290,12 @@
       }
     }
 
-    playStage() {
-      this.playBGM("stage", true);
+    playStage(name = "stage1") {
+      this.playBGM(name, true);
     }
 
-    playBoss() {
-      this.playBGM("boss", true);
+    playBoss(name = "boss1") {
+      this.playBGM(name, true);
     }
 
     pauseStage() {
@@ -2119,6 +2318,7 @@
 
   class Game {
     constructor() {
+      this.currentStageId = "stage1";
       this.state = new GameState();
       this.difficulty = new DifficultyManager();
       this.score = new ScoreManager(this);
@@ -2127,7 +2327,7 @@
       this.checkpoints = new CheckpointManager();
       this.save = new SaveManager();
       this.difficulty.set(this.save.data.settings?.lastDifficulty || "normal");
-      this.background = new BackgroundManager(BACKGROUND_STAGE1);
+      this.background = new BackgroundManager(this.currentStage.background);
       this.audio = new AudioManager();
       this.slipperNovaCutin = new Image();
       this.slipperNovaCutinLoaded = false;
@@ -2150,7 +2350,8 @@
       this.titleMenu = new MenuManager();
       this.stageSelectMenu = new MenuManager([
         { label: "STAGE 1　春の花粉参道", action: "stage1" },
-        { label: "STAGE 2　COMING SOON", action: "stage2", disabled: true },
+        { label: "STAGE 2　檜風街道", action: "stage2" },
+        { label: "STAGE 3　COMING SOON", action: "stage3", disabled: true },
       ]);
       this.optionsMenu = new MenuManager([
         { label: "BGM VOLUME", action: "bgm" },
@@ -2232,7 +2433,21 @@
       this.bindInput();
     }
 
-    start(fromCheckpoint = false, keepScore = false) {
+    get currentStage() {
+      return STAGE_DEFINITIONS[this.currentStageId] || STAGE_DEFINITIONS.stage1;
+    }
+
+    configureStage(stageId) {
+      this.currentStageId = STAGE_DEFINITIONS[stageId] ? stageId : "stage1";
+      this.state.stageName = this.currentStage.title;
+      DIALOGUE_CONTEXT.bossName = this.currentStage.boss.name;
+      this.background.setSource(this.currentStage.background);
+      this.suginomikotoCutinLoaded = false;
+      this.suginomikotoCutin.src = `${this.currentStage.boss.cutin}?v=${APP_VERSION}`;
+    }
+
+    start(fromCheckpoint = false, keepScore = false, stageId = this.currentStageId) {
+      this.configureStage(stageId);
       const startTime = fromCheckpoint ? this.checkpoints.currentPoint.time : 0;
       const preservedSpellCount = this.playerSpellCount;
       const preservedPower = this.power.value;
@@ -2274,7 +2489,10 @@
       this.pendingBossCardStart = 0;
       this.continueFullPower = false;
       this.spawnedWaves = new Set(
-        STAGE_WAVES.map((wave, index) => ({ wave, index })).filter(({ wave }) => wave.time <= startTime).map(({ index }) => index)
+        this.currentStage.waves
+          .map((wave, index) => ({ wave, index }))
+          .filter(({ wave }) => wave.time <= startTime)
+          .map(({ index }) => index)
       );
       this.currentWave = this.spawnedWaves.size;
       this.enemyBulletsSpawnedFrame = 0;
@@ -2292,8 +2510,8 @@
         this.life.lives = Math.max(1, this.life.lives);
       }
       this.state.showMessage(fromCheckpoint ? `${this.checkpoints.currentPoint.name} から再開` : "一面開始", 120);
-      this.audio.playStage();
-      if (!fromCheckpoint) this.startDialogue("scene_intro");
+      this.audio.playStage(this.currentStage.bgm);
+      if (!fromCheckpoint) this.startDialogue(this.currentStage.introScene);
     }
 
     returnToTitle() {
@@ -2540,7 +2758,7 @@
       if (!selected || selected.disabled) return;
       const label = selected.label;
       this.audio.playSE("menu_decide");
-      if (label === "START GAME") this.start(false, false);
+      if (label === "START GAME") this.start(false, false, "stage1");
       if (label === "STAGE SELECT" && this.save.isStageCleared("stage1")) {
         this.titlePanel = "stage";
         this.stageSelectMenu.index = 0;
@@ -2551,7 +2769,7 @@
     }
 
     ensureTitleBGM() {
-      if (this.state.mode === "title" && this.audio.currentBGMName !== "stage") this.audio.playBGM("stage", true);
+      if (this.state.mode === "title" && this.audio.currentBGMName !== "stage1") this.audio.playBGM("stage1", true);
     }
 
     refreshTitleMenu() {
@@ -2562,13 +2780,26 @@
         { label: "HOW TO PLAY" },
         { label: "HIGH SCORE" },
       ]);
+      this.stageSelectMenu.setItems([
+        { label: STAGE_DEFINITIONS.stage1.selectLabel, action: "stage1" },
+        {
+          label: STAGE_DEFINITIONS.stage2.selectLabel,
+          action: "stage2",
+          disabled: !this.save.isStageCleared("stage1"),
+        },
+        {
+          label: this.save.isStageCleared("stage2") ? "STAGE 3　COMING SOON" : "STAGE 3　未解放",
+          action: "stage3",
+          disabled: true,
+        },
+      ]);
     }
 
     activateStageSelectItem() {
       const item = this.stageSelectMenu.selected();
       if (!item || item.disabled) return;
       this.audio.playSE("menu_decide");
-      if (item.action === "stage1") this.start(false, false);
+      if (item.action === "stage1" || item.action === "stage2") this.start(false, false, item.action);
     }
 
     moveMenu(menu, delta) {
@@ -2688,7 +2919,7 @@
       if (action === "resume") this.resumeFromPause();
       if (action === "restart") {
         this.saveCurrentRun(false);
-        this.start(false, false);
+        this.start(false, false, this.currentStageId);
       }
       if (action === "title") {
         this.saveCurrentRun(false);
@@ -2752,8 +2983,8 @@
     executeGameOverAction(action) {
       this.gameOverMenu.confirm = null;
       if (action === "continue") this.continueFromCheckpoint();
-      if (action === "retry") this.start(false, false);
-      if (action === "checkpoint") this.start(true, true);
+      if (action === "retry") this.start(false, false, this.currentStageId);
+      if (action === "checkpoint") this.start(true, true, this.currentStageId);
       if (action === "title") this.returnToTitle();
     }
 
@@ -3198,7 +3429,7 @@
 
     spawnStageEnemies() {
       const t = this.state.time;
-      STAGE_WAVES.forEach((wave, index) => {
+      this.currentStage.waves.forEach((wave, index) => {
         if (t >= wave.time && !this.spawnedWaves.has(index)) {
           this.spawnedWaves.add(index);
           this.currentWave = index + 1;
@@ -3206,16 +3437,17 @@
         }
       });
 
-      if (t >= 3420 && !this.boss) {
-        this.boss = new Boss();
+      if (t >= this.currentStage.bossTime && !this.boss) {
+        this.boss = new Boss(this.currentStage.boss);
         this.enemies = [];
         this.enemyBullets = [];
-        this.state.showMessage("花粉濃度、異常上昇", 150);
+        this.state.showMessage(this.currentStage.warning, 150);
       }
     }
 
     spawnWave(pattern) {
-      const spawn = (x, y, type, movement = "drift") => this.spawnEnemy(x, y, type, movement);
+      const defaultFamily = this.currentStage.enemyFamily;
+      const spawn = (x, y, type, movement = "drift", family = defaultFamily) => this.spawnEnemy(x, y, type, movement, family);
       if (pattern === "smallLine") {
         const count = this.difficulty.current === "easy" ? 3 : this.difficulty.current === "hard" ? 5 : 4;
         for (let i = 0; i < count; i += 1) spawn(68 + i * (314 / Math.max(1, count - 1)), -30 - i * 22, "small");
@@ -3242,11 +3474,46 @@
       } else if (pattern === "smallFinale") {
         const count = this.difficulty.current === "hard" ? 6 : 4;
         for (let i = 0; i < count; i += 1) spawn(72 + i * (306 / Math.max(1, count - 1)), -30 - (i % 2) * 55, "small", "zigzag");
+      } else if (pattern === "hinokiVanguard") {
+        const count = this.difficulty.current === "easy" ? 4 : 6;
+        for (let i = 0; i < count; i += 1) {
+          const row = Math.floor(i / 3);
+          const col = i % 3;
+          spawn(W / 2 + (col - 1) * 68, -35 - row * 70, "small", "drift");
+        }
+      } else if (pattern === "hinokiWing") {
+        spawn(98, -40, "medium", "wing");
+        spawn(W - 98, -95, "medium", "wing");
+        if (this.difficulty.current === "hard") spawn(W / 2, -150, "small", "zigzag");
+      } else if (pattern === "mixedFan") {
+        for (let i = 0; i < 5; i += 1) {
+          spawn(W / 2 + (i - 2) * 58, -35 - Math.abs(i - 2) * 38, i % 2 ? "small" : "medium", "drift", i === 2 ? "pollen" : "hinoki");
+        }
+      } else if (pattern === "hinokiSweep") {
+        const count = this.difficulty.current === "easy" ? 4 : 6;
+        for (let i = 0; i < count; i += 1) spawn(52 + i * (346 / Math.max(1, count - 1)), -35 - i * 34, "small", "wing");
+      } else if (pattern === "hinokiHeavyEscort") {
+        spawn(W / 2, -55, "large", "sine");
+        spawn(82, -120, "small", "wing");
+        spawn(W - 82, -150, "small", "wing");
+      } else if (pattern === "pollenInterlude") {
+        for (let i = 0; i < 5; i += 1) spawn(70 + i * 76, -35 - (i % 2) * 48, "small", "zigzag", "pollen");
+      } else if (pattern === "hinokiFormation") {
+        spawn(W / 2, -45, "medium", "sine");
+        spawn(105, -105, "medium", "wing");
+        spawn(W - 105, -105, "medium", "wing");
+      } else if (pattern === "mixedCross") {
+        for (let i = 0; i < 6; i += 1) spawn(i % 2 ? W - 92 : 92, -35 - i * 52, i % 3 === 0 ? "medium" : "small", "sine", i % 2 ? "hinoki" : "pollen");
+      } else if (pattern === "hinokiFanFinale") {
+        for (let i = 0; i < 7; i += 1) spawn(W / 2 + (i - 3) * 48, -35 - Math.abs(i - 3) * 30, i === 3 ? "large" : "small", i === 3 ? "sine" : "wing");
+      } else if (pattern === "hinokiGuard") {
+        spawn(110, -45, "large", "sine");
+        spawn(W - 110, -95, "large", "sine");
       }
     }
 
-    spawnEnemy(x, y, type, movement = "drift") {
-      const enemy = new Enemy(x, y, type, movement);
+    spawnEnemy(x, y, type, movement = "drift", family = this.currentStage.enemyFamily) {
+      const enemy = new Enemy(x, y, type, movement, family);
       enemy.hp = Math.max(1, Math.round(enemy.hp * this.difficulty.config.enemyHpMultiplier));
       this.enemies.push(enemy);
     }
@@ -3457,7 +3724,14 @@
     }
 
     saveCurrentRun(cleared) {
-      this.save.saveRun(this.difficulty.current, this.score.value, this.checkpoints.current, cleared, this.continueCount);
+      this.save.saveRun(
+        this.difficulty.current,
+        this.currentStageId,
+        this.score.value,
+        this.checkpoints.current,
+        cleared,
+        this.continueCount
+      );
     }
 
     defeatBoss() {
@@ -3470,12 +3744,13 @@
       this.endPlayerSpell();
       this.audio.pauseStage();
       this.state.showMessage("消滅", 120);
-      this.startDialogue("scene_clear", () => {
+      this.startDialogue(this.currentStage.clearScene, () => {
         this.boss = null;
         this.state.mode = "clear";
         this.saveCurrentRun(true);
-        this.state.showMessage("花粉、滅殺完了！", 9999);
-        this.startDialogue("scene_ending", () => {
+        this.refreshTitleMenu();
+        this.state.showMessage(this.currentStage.clearMessage, 9999);
+        this.startDialogue(this.currentStage.endingScene, () => {
           this.state.mode = "clear";
         });
       });
@@ -3513,7 +3788,7 @@
       if (this.state.mode === "title") this.drawTitle();
       if (this.state.mode === "paused") this.drawPauseMenu();
       if (this.state.mode === "gameover") this.drawGameOverMenu();
-      if (this.state.mode === "clear") this.drawResult("花粉、滅殺完了！", "スコア " + this.score.value);
+      if (this.state.mode === "clear") this.drawResult(this.currentStage.clearMessage, "スコア " + this.score.value);
       this.drawBossSpellCutin();
       this.drawPlayerSpellCutin();
       this.drawPowerUpFlash();
@@ -3696,7 +3971,7 @@
       ctx.fillStyle = "#f5ffd9";
       ctx.font = "900 27px system-ui, sans-serif";
       ctx.textAlign = "left";
-      ctx.fillText("SUGINOMIKOTO", 18, H / 2 + 60);
+      ctx.fillText(this.currentStage.boss.cutinLabel, 18, H / 2 + 60);
       ctx.fillStyle = "#ffe479";
       ctx.font = "800 15px system-ui, sans-serif";
       ctx.fillText(this.bossSpellCutinName, 18, H / 2 + 86);
@@ -3925,7 +4200,7 @@
         `ENEMIES ${this.enemies.length}`,
         `ENEMY BULLETS ${this.enemyBullets.length}`,
         `SPAWNED / 1s ${bulletsLastSecond}`,
-        `WAVE ${this.currentWave} / ${STAGE_WAVES.length}`,
+        `WAVE ${this.currentWave} / ${this.currentStage.waves.length}`,
         `ACTIVE PATTERNS ${activePatterns}`,
       ];
       rows.forEach((row, index) => ctx.fillText(row, 18, H - 132 + index * 19));
@@ -3955,11 +4230,15 @@
         this.drawMenu(this.stageSelectMenu, 395);
         ctx.fillStyle = "#fff0a8";
         ctx.font = "700 14px system-ui, sans-serif";
-        ctx.fillText(`STAGE 1 HIGH SCORE  ${this.save.getHighScore(this.difficulty.current, "stage1")}`, W / 2, 520);
+        const selectedStage = this.stageSelectMenu.selected()?.action;
+        const selectedScore = selectedStage && STAGE_DEFINITIONS[selectedStage]
+          ? this.save.getHighScore(this.difficulty.current, selectedStage)
+          : 0;
+        ctx.fillText(`SELECTED HIGH SCORE  ${selectedScore}`, W / 2, 560);
         ctx.fillStyle = "rgba(239, 255, 237, 0.75)";
         ctx.font = "13px system-ui, sans-serif";
-        ctx.fillText("Stage2は将来のアップデートで解放予定", W / 2, 560);
-        ctx.fillText("Esc / B で戻る", W / 2, 584);
+        ctx.fillText("Stage3は将来のアップデートで実装予定", W / 2, 590);
+        ctx.fillText("Esc / B で戻る", W / 2, 614);
         return;
       }
       this.drawMenu(this.titleMenu, 350, (item) => {
@@ -3973,10 +4252,10 @@
         ctx.fillText("マウス: 移動  左ボタンショット  右クリック履技", W / 2, 658);
         ctx.fillText("Xbox: 左スティック/D-pad移動  Aショット/決定  X履技  LB/RB低速", W / 2, 682);
       } else if (this.titlePanel === "score") {
-        ctx.fillText(`EASY　STAGE1 ${this.save.getHighScore("easy", "stage1")}　TOTAL ${this.save.getHighScore("easy", "total")}`, W / 2, 610);
-        ctx.fillText(`NORMAL　STAGE1 ${this.save.getHighScore("normal", "stage1")}　TOTAL ${this.save.getHighScore("normal", "total")}`, W / 2, 634);
-        ctx.fillText(`HARD　STAGE1 ${this.save.getHighScore("hard", "stage1")}　TOTAL ${this.save.getHighScore("hard", "total")}`, W / 2, 658);
-        ctx.fillText(`STAGE1 ${this.save.isStageCleared("stage1") ? "CLEAR" : "未クリア"}`, W / 2, 682);
+        ctx.fillText(`EASY　S1 ${this.save.getHighScore("easy", "stage1")}　S2 ${this.save.getHighScore("easy", "stage2")}`, W / 2, 600);
+        ctx.fillText(`NORMAL　S1 ${this.save.getHighScore("normal", "stage1")}　S2 ${this.save.getHighScore("normal", "stage2")}`, W / 2, 624);
+        ctx.fillText(`HARD　S1 ${this.save.getHighScore("hard", "stage1")}　S2 ${this.save.getHighScore("hard", "stage2")}`, W / 2, 648);
+        ctx.fillText(`TOTAL ${this.save.getHighScore(this.difficulty.current, "total")}　S1 ${this.save.isStageCleared("stage1") ? "CLEAR" : "---"}　S2 ${this.save.isStageCleared("stage2") ? "CLEAR" : "---"}`, W / 2, 680);
       } else {
         ctx.fillStyle = "rgba(0, 0, 0, 0.42)";
         ctx.fillRect(86, 594, W - 172, 38);

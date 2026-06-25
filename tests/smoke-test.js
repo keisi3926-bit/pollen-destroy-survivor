@@ -150,15 +150,15 @@ assert.equal(game.audio.getSEVolume(), 0.8, "default SE volume should be 80 perc
 game.audio.setBGMVolume(0.55);
 game.audio.setSEVolume(0.65);
 assert.equal(JSON.parse(localStorageData.get("pollenDestroySlipperAudioSettings")).bgmVolume, 0.55);
-game.audio.playBGM("stage");
+game.audio.playBGM("stage1");
 game.audio.setMute(true);
 assert.equal(game.audio.currentBGM.volume, 0, "master mute should silence BGM");
 game.audio.setMute(false);
 assert.equal(game.audio.currentBGM.volume, 0.55, "unmute should restore the saved BGM volume");
 assert.equal(
   Array.from(game.titleMenu.items, (item) => item.label).join("|"),
-  "START GAME|OPTIONS|HOW TO PLAY|HIGH SCORE",
-  "title menu should expose the requested four entries"
+  "START GAME|STAGE SELECT|OPTIONS|HOW TO PLAY|HIGH SCORE",
+  "title menu should expose Stage Select and the existing entries"
 );
 game.openOptions();
 assert.equal(game.titlePanel, "options");
@@ -401,30 +401,77 @@ assert.ok(game.boss, "boss should spawn at the end of the stage");
 game.boss.entered = true;
 assert.equal(game.boss.spellCards.length, 3, "boss battle should have three phases");
 game.boss.beginCurrentCard(game);
+const finishBossCardTransition = () => {
+  game.pendingBossCardStart = 0;
+  game.boss.transitioning = false;
+  game.boss.beginCurrentCard(game);
+};
 assert.equal(game.bossSpellCutin, 0, "normal boss attack should not show a cut-in");
 game.boss.currentCard.hp = 0;
 game.boss.nextCard(game);
+finishBossCardTransition();
 assert.ok(game.bossSpellCutin > 0, "boss spell should start the Suginomikoto cut-in");
-assert.equal(game.bossSpellCutinName, "神威「黄塵円舞」", "boss cut-in should show the current spell name");
+assert.equal(game.bossSpellCutinName, "大神威「無限飛散」", "boss cut-in should show the current spell name");
 assert.ok(game.getCutinSlideX(74, 74, -1) < 0, "Suginomikoto cut-in should start outside the left edge");
 game.draw();
-game.boss.currentCard.hp = 0;
-game.boss.nextCard(game);
-assert.equal(game.boss.currentCard.survival, true, "third divine attack should be a survival phase");
+assert.equal(game.boss.currentCard.survival, true, "second divine attack should be a survival phase");
 const survivalHp = game.boss.currentCard.hp;
 game.boss.takeDamage(game, 999);
 assert.equal(game.boss.currentCard.hp, survivalHp, "survival boss should be invincible");
-game.boss.currentCard.age = game.boss.currentCard.duration - 601;
-game.boss.currentCard.update(game.boss, game);
+game.boss.currentCard.survivalTimer = 9.9;
+game.boss.currentCard.update(game.boss, game, 0.1);
 assert.equal(game.boss.currentCard.frenzy, true, "last ten seconds should enable frenzy mode");
+game.boss.currentCard.survivalTimer = 0;
+game.boss.update(game);
+finishBossCardTransition();
+assert.equal(game.boss.currentCard.survival, false, "survival completion should advance to the final HP phase");
+assert.equal(game.boss.invincible, false, "boss should become vulnerable after survival");
 while (game.boss && !game.boss.defeated) {
   game.boss.currentCard.hp = 0;
   game.boss.nextCard(game);
+  if (game.pendingBossCardStart > 0) finishBossCardTransition();
+  else if (game.pendingBossDefeat > 0) {
+    game.pendingBossDefeat = 0;
+    game.defeatBoss();
+  }
 }
 assert.equal(game.dialogue.sceneName, "scene_clear", "boss defeat should start the clear dialogue");
 game.dialogue.completeNow();
 assert.equal(game.dialogue.sceneName, "scene_ending", "clear dialogue should lead to the ending");
 game.dialogue.completeNow();
 assert.equal(game.state.mode, "clear", "ending should finish on the clear screen");
+
+game.save.data.clearFlags.stage1 = true;
+game.refreshTitleMenu();
+game.titlePanel = "stage";
+assert.equal(game.stageSelectMenu.items[1].disabled, false, "clearing Stage1 should unlock Stage2");
+game.start(false, false, "stage2");
+game.dialogue.completeNow();
+assert.equal(game.currentStageId, "stage2", "Stage2 should become the active stage");
+assert.equal(game.state.stageName, "二面　檜風街道", "Stage2 title should be applied");
+assert.equal(game.audio.currentBGMName, "stage2", "Stage2 should use its road theme slot");
+assert.ok(game.background.image.src.includes("stage2_hinoki_road.jpg"), "Stage2 should use the Hinoki road background");
+game.state.time = game.currentStage.bossTime;
+game.spawnStageEnemies();
+assert.equal(game.boss.name, "ヒノキ将軍", "Stage2 should spawn Hinoki Shogun");
+game.boss.y = 117;
+game.boss.update(game);
+game.dialogue.skip();
+for (let i = 0; i < 20 && game.dialogue.active; i += 1) game.dialogue.update();
+assert.equal(game.audio.currentBGMName, "boss2", "Hinoki Shogun dialogue completion should switch boss BGM");
+assert.ok(game.suginomikotoCutin.src.includes("hinoki_shogun_divine_attack.png"), "Stage2 should use the Hinoki cut-in");
+assert.equal(game.boss.currentCard.survival, false, "Stage2 first phase should be an HP phase");
+game.boss.currentCard.hp = 0;
+game.boss.nextCard(game);
+finishBossCardTransition();
+assert.equal(game.boss.currentCard.survival, true, "Stage2 second phase should be survival");
+const stage2SurvivalHp = game.boss.currentCard.hp;
+game.boss.takeDamage(game, 9999);
+assert.equal(game.boss.currentCard.hp, stage2SurvivalHp, "Stage2 survival should ignore all damage");
+game.boss.currentCard.survivalTimer = 0;
+game.boss.update(game);
+finishBossCardTransition();
+assert.equal(game.boss.currentCard.survival, false, "Stage2 survival should advance to the third phase");
+assert.equal(game.boss.currentCard.pattern, "hinokiFinal", "Stage2 final phase should use its dedicated pattern");
 
 console.log("smoke test passed");

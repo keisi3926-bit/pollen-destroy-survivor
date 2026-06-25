@@ -1,4 +1,4 @@
-const CACHE_VERSION = "pollen-destroy-slipper-v0.26.1";
+const CACHE_VERSION = "pollen-destroy-slipper-v0.30.0";
 const APP_SHELL = [
   "./",
   "index.html",
@@ -6,13 +6,19 @@ const APP_SHELL = [
   "game.js",
   "version.json",
   "assets/backgrounds/stage1_pollen_sando.png",
+  "assets/backgrounds/stage2_hinoki_road.jpg",
   "assets/audio/stage1_spring_pollen_path.mp3",
   "assets/audio/boss_suginomikoto.mp3",
+  "assets/audio/stage2_theme.mp3",
+  "assets/audio/boss2_theme.mp3",
   "assets/characters/player.png",
   "assets/characters/suginomikoto.png",
+  "assets/characters/hinoki_shogun.png",
   "assets/enemies/pollen_enemies.png",
+  "assets/enemies/hinoki_enemies.png",
   "assets/cutin/haou_slipper_nova.png",
   "assets/cutin/suginomikoto_divine_attack.png",
+  "assets/cutin/hinoki_shogun_divine_attack.png",
   "assets/audio/se/item_p_small.wav",
   "assets/audio/se/item_p_large.wav",
   "assets/audio/se/power_up.wav",
