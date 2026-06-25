@@ -1,6 +1,10 @@
-# 花粉滅殺スリッパー！
+# 花粉滅殺サバイバー
 
 King of Slipper 外伝ミニゲームとして作った、縦スクロール弾幕シューティングのMVPです。
+
+- 公開URL: https://keisi3926-bit.github.io/pollen-destroy-survivor/
+- リポジトリ: https://github.com/keisi3926-bit/pollen-destroy-survivor
+- Clone: `git clone https://github.com/keisi3926-bit/pollen-destroy-survivor.git`
 
 ## 概要
 
@@ -115,6 +119,7 @@ OPTIONS:
 ```text
 index.html
 style.css
+manifest.webmanifest
 brand-splash.js
 game.js
 version.json
@@ -123,6 +128,9 @@ assets/
   brand/
     keishis-entrance-logo.png
     sweet-wind-jingle.mp3
+  icons/
+    pollen-survivor-192.png
+    pollen-survivor-512.png
   backgrounds/
     stage1_pollen_sando.png
     stage2_hinoki_road.jpg

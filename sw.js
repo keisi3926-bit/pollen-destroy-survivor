@@ -1,13 +1,16 @@
-const CACHE_VERSION = "pollen-destroy-slipper-v0.33.0";
+const CACHE_VERSION = "pollen-destroy-survivor-v0.34.0";
 const APP_SHELL = [
   "./",
   "index.html",
   "style.css",
+  "manifest.webmanifest",
   "brand-splash.js",
   "game.js",
   "version.json",
   "assets/brand/keishis-entrance-logo.png",
   "assets/brand/sweet-wind-jingle.mp3",
+  "assets/icons/pollen-survivor-192.png",
+  "assets/icons/pollen-survivor-512.png",
   "assets/backgrounds/stage1_pollen_sando.png",
   "assets/backgrounds/stage2_hinoki_road.jpg",
   "assets/audio/stage1_spring_pollen_path.mp3",

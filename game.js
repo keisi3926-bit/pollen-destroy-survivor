@@ -99,7 +99,7 @@
     scorePerGraze: 50,
     milestones: [100, 500, 1000],
   };
-  const APP_VERSION = "0.33.0";
+  const APP_VERSION = "0.34.0";
   const STAGE_ORDER = ["stage1", "stage2"];
   const ARCADE_CLEAR_WAIT_FRAMES = 150;
   const FIXED_STEP_SECONDS = 1 / 60;
@@ -4296,7 +4296,7 @@
       ctx.fillStyle = "rgba(255, 255, 255, 0.68)";
       ctx.font = "12px system-ui, sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText("花粉滅殺スリッパー！", W / 2, H - 12);
+      ctx.fillText("花粉滅殺サバイバー", W / 2, H - 12);
 
       if (this.state.messageTimer > 0) {
         ctx.fillStyle = "rgba(9, 20, 15, 0.68)";
@@ -4357,7 +4357,7 @@
       ctx.fillText("花粉滅殺", W / 2, 230);
       ctx.fillStyle = "#91e9ff";
       ctx.font = "900 36px system-ui, sans-serif";
-      ctx.fillText("スリッパー！", W / 2, 276);
+      ctx.fillText("サバイバー", W / 2, 276);
       ctx.fillStyle = "#fff1a6";
       ctx.font = "16px system-ui, sans-serif";
       ctx.fillText("King of Slipper 外伝ミニゲーム", W / 2, 320);

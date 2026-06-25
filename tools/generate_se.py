@@ -1,4 +1,4 @@
-"""Generate original sound effects for Pollen Destroy Slipper."""
+"""Generate original sound effects for Pollen Destroy Survivor."""
 
 from __future__ import annotations
 
