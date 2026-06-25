@@ -89,7 +89,8 @@
     scorePerGraze: 50,
     milestones: [100, 500, 1000],
   };
-  const APP_VERSION = "0.23.0";
+  const APP_VERSION = "0.24.0";
+  const FIXED_STEP_SECONDS = 1 / 60;
   const BOSS_DAMAGE_MULTIPLIER = 0.68;
   const INITIAL_CONTINUES = 3;
   const CHECKPOINTS = [
@@ -1098,7 +1099,18 @@
   }
 
   class SpellCard {
-    constructor({ name, duration, hp, pattern, type = "spell", survival = false, onStart = null, onUpdate = null, onEnd = null }) {
+    constructor({
+      name,
+      duration,
+      hp,
+      pattern,
+      type = "spell",
+      survival = false,
+      survivalDuration = 30,
+      onStart = null,
+      onUpdate = null,
+      onEnd = null,
+    }) {
       this.name = name;
       this.duration = duration;
       this.hp = hp;
@@ -1106,6 +1118,8 @@
       this.pattern = pattern;
       this.type = type;
       this.survival = survival;
+      this.survivalDuration = survivalDuration;
+      this.survivalTimer = survival ? survivalDuration : 0;
       this.frenzy = false;
       this.frenzyAnnounced = false;
       this.failed = false;
@@ -1125,14 +1139,16 @@
       this.failed = false;
       this.lastCountdownSecond = null;
       this.resolved = false;
+      this.survivalTimer = this.survival ? this.survivalDuration : 0;
       if (this.onStart) this.onStart(boss, game, this);
     }
 
-    update(boss, game) {
+    update(boss, game, deltaTime = FIXED_STEP_SECONDS) {
       this.age += 1;
+      if (this.survival) this.survivalTimer = Math.max(0, this.survivalTimer - deltaTime);
       const hpRatio = this.maxHp > 0 ? this.hp / this.maxHp : 0;
       const isFinalLife = boss.cardIndex === boss.spellCards.length - 1;
-      this.frenzy = (this.survival && this.duration - this.age <= 600)
+      this.frenzy = (this.survival && this.survivalTimer <= 10)
         || (!this.survival && isFinalLife && hpRatio <= 0.4);
       if (this.frenzy && !this.frenzyAnnounced) {
         this.frenzyAnnounced = true;
@@ -1140,7 +1156,7 @@
         game.state.shake = Math.max(game.state.shake, 10);
       }
       if (this.survival) {
-        const seconds = Math.ceil(Math.max(0, this.duration - this.age) / 60);
+        const seconds = Math.ceil(this.survivalTimer);
         if (seconds >= 1 && seconds <= 5 && seconds !== this.lastCountdownSecond) {
           this.lastCountdownSecond = seconds;
           game.audio.playSE("countdown_tick", { cooldown: 35, maxVoices: 1 });
@@ -1289,6 +1305,7 @@
       this.dialogueStarted = false;
       this.defeated = false;
       this.transitioning = false;
+      this.invincible = false;
       this.name = DIALOGUE_CONTEXT.bossName;
       this.spellCards = this.createSpellCards();
       this.cardIndex = 0;
@@ -1303,7 +1320,7 @@
       this.image.src = `${BOSS_ASSET}?v=${APP_VERSION}`;
     }
 
-    update(game) {
+    update(game, deltaTime = FIXED_STEP_SECONDS) {
       this.age += 1;
 
       if (!this.entered) {
@@ -1325,10 +1342,10 @@
       this.x = W / 2 + Math.sin(this.age * 0.018) * 78;
       if (!this.currentCard || this.defeated || this.transitioning) return;
       this.attackAge = this.currentCard.age;
-      this.currentCard.update(this, game);
+      this.currentCard.update(this, game, deltaTime);
       this.hp = this.currentCard.hp;
       this.maxHp = this.currentCard.maxHp;
-      if (this.currentCard.survival && this.currentCard.age >= this.currentCard.duration) {
+      if (this.currentCard.survival && this.currentCard.survivalTimer <= 0) {
         this.nextCard(game, "survival-timeout");
       } else if (!this.currentCard.survival && this.currentCard.hp <= 0) {
         this.nextCard(game, "hp-break");
@@ -1340,8 +1357,15 @@
     createSpellCards() {
       return [
         new SpellCard({ name: "Phase 1 通常弾幕", duration: 720, hp: 360, pattern: "normalSpread", type: "normal" }),
-        new SpellCard({ name: "神威「黄塵円舞」", duration: 1200, hp: 1, pattern: "yellowDance", survival: true }),
-        new SpellCard({ name: "大神威「無限飛散」", duration: 2400, hp: 620, pattern: "infiniteScatter" }),
+        new SpellCard({
+          name: "大神威「無限飛散」",
+          duration: 1800,
+          hp: 1,
+          pattern: "infiniteScatter",
+          survival: true,
+          survivalDuration: 30,
+        }),
+        new SpellCard({ name: "終神威「杉並木封鎖」", duration: 2400, hp: 620, pattern: "infiniteScatter" }),
       ];
     }
 
@@ -1350,6 +1374,7 @@
       if (!this.currentCard) return;
       this.currentCard.maxHp = Math.max(1, Math.round(this.currentCard.maxHp * game.difficulty.config.bossHpMultiplier));
       this.currentCard.start(this, game);
+      this.invincible = this.currentCard.survival;
       this.hp = this.currentCard.hp;
       this.maxHp = this.currentCard.maxHp;
       this.enemyClearOnCardChange(game);
@@ -1393,6 +1418,7 @@
 
       game.missedDuringCard = false;
       clearedCard.end(this, game);
+      this.invincible = false;
       this.cardIndex += 1;
       if (this.cardIndex >= this.spellCards.length) {
         this.enemyClearOnCardChange(game);
@@ -1400,11 +1426,13 @@
         game.pendingBossDefeat = hpBreak || survivalSuccess ? 185 : 70;
         return;
       }
-      this.beginCurrentCard(game);
+      this.enemyClearOnCardChange(game);
+      this.transitioning = true;
+      game.pendingBossCardStart = 75;
     }
 
     takeDamage(game, amount) {
-      if (!this.currentCard || this.defeated || this.transitioning || !this.entered) return;
+      if (!this.currentCard || this.defeated || this.transitioning || this.invincible || !this.entered) return;
       if (this.currentCard.survival || this.currentCard.resolved) return;
       const appliedDamage = amount * BOSS_DAMAGE_MULTIPLIER;
       this.currentCard.hp = Math.max(0, this.currentCard.hp - appliedDamage);
@@ -2108,6 +2136,7 @@
       this.continueCount = 0;
       this.missedDuringCard = false;
       this.pendingBossDefeat = 0;
+      this.pendingBossCardStart = 0;
       this.continueFullPower = false;
       this.spawnedWaves = new Set();
       this.currentWave = 0;
@@ -2119,6 +2148,7 @@
       this.titlePanel = "main";
       this.dialogue = new DialogueManager(DIALOGUE_SCENES, PORTRAIT_BASE, DIALOGUE_CONTEXT);
       this.lastTime = 0;
+      this.updateAccumulator = 0;
       this.input = {
         left: false,
         right: false,
@@ -2186,6 +2216,7 @@
       this.grazeFlash = 0;
       this.missedDuringCard = false;
       this.pendingBossDefeat = 0;
+      this.pendingBossCardStart = 0;
       this.continueFullPower = false;
       this.spawnedWaves = new Set(
         STAGE_WAVES.map((wave, index) => ({ wave, index })).filter(({ wave }) => wave.time <= startTime).map(({ index }) => index)
@@ -2793,18 +2824,26 @@
     }
 
     loop = (time) => {
-      const dt = Math.min(2, (time - this.lastTime) / 16.666 || 1);
+      if (!this.lastTime) this.lastTime = time;
+      const elapsedSeconds = Math.min(0.1, Math.max(0, (time - this.lastTime) / 1000));
       this.lastTime = time;
-      for (let i = 0; i < dt; i += 1) this.update();
+      this.updateAccumulator += elapsedSeconds;
+      let steps = 0;
+      while (this.updateAccumulator >= FIXED_STEP_SECONDS && steps < 6) {
+        this.update(FIXED_STEP_SECONDS);
+        this.updateAccumulator -= FIXED_STEP_SECONDS;
+        steps += 1;
+      }
+      if (steps === 6) this.updateAccumulator = 0;
       this.draw();
       requestAnimationFrame(this.loop);
     };
 
-    update() {
+    update(deltaTime = FIXED_STEP_SECONDS) {
       this.readGamepad();
       if (this.state.mode !== "paused") this.dialogue.update();
       document.body.classList.toggle("dialogue-active", this.dialogue.active);
-      if (!this.dialogue.active && this.state.mode === "stage") this.updateStage();
+      if (!this.dialogue.active && this.state.mode === "stage") this.updateStage(deltaTime);
       if (this.dialogue.active) return;
       if (this.state.mode === "paused" || this.state.mode === "gameover" || this.state.mode === "title") return;
       this.particles.forEach((p) => p.update());
@@ -2816,7 +2855,7 @@
       this.grazeFlash = Math.max(0, this.grazeFlash - 1);
     }
 
-    updateStage() {
+    updateStage(deltaTime = FIXED_STEP_SECONDS) {
       spellButton.disabled = this.playerSpellCount <= 0;
       this.state.time += 1;
       this.checkpoints.updateByTime(this.state.time);
@@ -2855,9 +2894,16 @@
       this.playerBullets.forEach((b) => b.update());
       this.enemyBullets.forEach((b) => b.update());
       this.updateLasers();
-      if (this.boss) this.boss.update(this);
+      if (this.boss) this.boss.update(this, deltaTime);
 
       this.resolveCollisions();
+      if (this.pendingBossCardStart > 0) {
+        this.pendingBossCardStart -= 1;
+        if (this.pendingBossCardStart === 0 && this.boss && !this.boss.defeated) {
+          this.boss.transitioning = false;
+          this.boss.beginCurrentCard(this);
+        }
+      }
       if (this.pendingBossDefeat > 0) {
         this.pendingBossDefeat -= 1;
         if (this.pendingBossDefeat === 0) this.defeatBoss();
@@ -3631,7 +3677,7 @@
 
         const currentCard = this.boss.currentCard;
         const currentRatio = currentCard?.survival
-          ? Math.max(0, (currentCard.duration - currentCard.age) / currentCard.duration)
+          ? Math.max(0, currentCard.survivalTimer / currentCard.survivalDuration)
           : Math.max(0, this.boss.hp / this.boss.maxHp);
         if (this.boss.cardIndex === 0) {
           drawLifeBar(45, currentRatio);
@@ -3644,7 +3690,9 @@
         }
         if (this.boss.currentCard && this.boss.currentCard.isSpell) {
           const card = this.boss.currentCard;
-          const rest = Math.max(0, Math.ceil((card.duration - card.age) / 60));
+          const rest = card.survival
+            ? Math.max(0, Math.ceil(card.survivalTimer))
+            : Math.max(0, Math.ceil((card.duration - card.age) / 60));
           ctx.fillStyle = "rgba(8, 18, 15, 0.76)";
           ctx.fillRect(78, 88, W - 156, 28);
           ctx.fillStyle = "#fff1a8";
