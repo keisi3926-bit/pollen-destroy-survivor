@@ -98,7 +98,9 @@
     scorePerGraze: 50,
     milestones: [100, 500, 1000],
   };
-  const APP_VERSION = "0.31.0";
+  const APP_VERSION = "0.32.0";
+  const STAGE_ORDER = ["stage1", "stage2"];
+  const ARCADE_CLEAR_WAIT_FRAMES = 150;
   const FIXED_STEP_SECONDS = 1 / 60;
   const BOSS_DAMAGE_MULTIPLIER = 0.68;
   const INITIAL_CONTINUES = 3;
@@ -223,8 +225,8 @@
       bossScene: "scene_boss",
       clearScene: "scene_clear",
       endingScene: "scene_ending",
-      clearMessage: "花粉、滅殺完了！",
-      clearSubtitle: "",
+      clearMessage: "STAGE1 CLEAR",
+      clearSubtitle: "花粉、滅殺完了！",
       clearFooter: "",
       boss: {
         name: "スギノミコト",
@@ -693,16 +695,16 @@
       }
     }
 
-    saveRun(difficulty, stageId, score, checkpoint, cleared, continues) {
+    saveRun(difficulty, stageId, stageScore, checkpoint, cleared, continues, totalScore = stageScore) {
       const current = this.data[difficulty] || this.defaultData()[difficulty];
-      current.highScore = Math.max(current.highScore || 0, score);
+      current.highScore = Math.max(current.highScore || 0, totalScore);
       current.maxCheckpoint = Math.max(current.maxCheckpoint || 0, checkpoint);
       current.cleared = Boolean(current.cleared || cleared);
       current.continues = Math.max(current.continues || 0, continues);
       this.data[difficulty] = current;
       const difficultyScores = this.data.highScores[difficulty];
-      difficultyScores[stageId] = Math.max(difficultyScores[stageId] || 0, score);
-      difficultyScores.total = Math.max(difficultyScores.total || 0, score);
+      difficultyScores[stageId] = Math.max(difficultyScores[stageId] || 0, stageScore);
+      difficultyScores.total = Math.max(difficultyScores.total || 0, totalScore);
       if (cleared) this.data.clearFlags[stageId] = true;
       localStorage.setItem(this.key, JSON.stringify(this.data));
     }
@@ -2414,6 +2416,9 @@
       this.pendingBossDefeat = 0;
       this.pendingBossCardStart = 0;
       this.continueFullPower = false;
+      this.currentMode = "stageSelect";
+      this.clearAdvanceTimer = 0;
+      this.stageStartScore = 0;
       this.spawnedWaves = new Set();
       this.currentWave = 0;
       this.debugVisible = false;
@@ -2467,13 +2472,54 @@
       this.suginomikotoCutin.src = `${this.currentStage.boss.cutin}?v=${APP_VERSION}`;
     }
 
-    start(fromCheckpoint = false, keepScore = false, stageId = this.currentStageId) {
+    captureRunState() {
+      return {
+        score: this.score.value,
+        extendIndex: this.score.extendIndex,
+        lives: this.life.lives,
+        spellCount: this.playerSpellCount,
+        power: this.power.value,
+        grazeCount: this.grazeCount,
+        grazeMilestoneIndex: this.grazeMilestoneIndex,
+        continuesLeft: this.continuesLeft,
+        continueCount: this.continueCount,
+        difficulty: this.difficulty.current,
+      };
+    }
+
+    getNextStageId() {
+      const index = STAGE_ORDER.indexOf(this.currentStageId);
+      if (index < 0) return null;
+      const nextId = STAGE_ORDER[index + 1];
+      return nextId && STAGE_DEFINITIONS[nextId] ? nextId : null;
+    }
+
+    beginArcade() {
+      this.currentMode = "arcade";
+      this.start(false, false, "stage1");
+    }
+
+    beginStageSelect(stageId) {
+      this.currentMode = "stageSelect";
+      this.start(false, false, stageId);
+    }
+
+    start(fromCheckpoint = false, keepScore = false, stageId = this.currentStageId, arcadeCarry = null) {
       this.configureStage(stageId);
       const startTime = fromCheckpoint ? this.checkpoints.currentPoint.time : 0;
       const preservedSpellCount = this.playerSpellCount;
       const preservedPower = this.power.value;
+      const preservedStageStartScore = this.stageStartScore;
+      const carried = arcadeCarry || null;
       this.state.resetRun(startTime);
-      if (!keepScore) {
+      if (carried) {
+        this.score.value = carried.score;
+        this.score.extendIndex = carried.extendIndex;
+        this.checkpoints.reset();
+        this.continuesLeft = carried.continuesLeft;
+        this.continueCount = carried.continueCount;
+        this.difficulty.set(carried.difficulty);
+      } else if (!keepScore) {
         this.score.reset();
         this.checkpoints.reset();
         this.continuesLeft = INITIAL_CONTINUES;
@@ -2489,7 +2535,7 @@
       this.particles = [];
       this.lasers = [];
       this.boss = null;
-      this.playerSpellCount = keepScore ? preservedSpellCount : 3;
+      this.playerSpellCount = carried ? carried.spellCount : keepScore ? preservedSpellCount : 3;
       spellButton.disabled = this.playerSpellCount <= 0;
       this.playerSpellTimer = 0;
       this.playerSpellCutin = 0;
@@ -2502,12 +2548,13 @@
       this.bossCutinBellPlayed = false;
       this.bossCutinReleasePlayed = false;
       this.powerUpFlash = 0;
-      this.grazeCount = keepScore ? this.grazeCount : 0;
-      this.grazeMilestoneIndex = keepScore ? this.grazeMilestoneIndex : 0;
+      this.grazeCount = carried ? carried.grazeCount : keepScore ? this.grazeCount : 0;
+      this.grazeMilestoneIndex = carried ? carried.grazeMilestoneIndex : keepScore ? this.grazeMilestoneIndex : 0;
       this.grazeFlash = 0;
       this.missedDuringCard = false;
       this.pendingBossDefeat = 0;
       this.pendingBossCardStart = 0;
+      this.clearAdvanceTimer = 0;
       this.continueFullPower = false;
       this.spawnedWaves = new Set(
         this.currentStage.waves
@@ -2523,16 +2570,37 @@
       this.input.touchActive = false;
       this.input.mouseActive = false;
       this.input.fire = false;
-      if (keepScore) this.power.value = preservedPower;
+      if (carried) this.power.value = carried.power;
+      else if (keepScore) this.power.value = preservedPower;
       else this.power.reset();
       this.syncFollowers();
       this.life.reset();
-      if (keepScore && fromCheckpoint) {
+      if (carried) {
+        this.life.lives = Math.max(1, carried.lives);
+      } else if (keepScore && fromCheckpoint) {
         this.life.lives = Math.max(1, this.life.lives);
       }
-      this.state.showMessage(fromCheckpoint ? `${this.checkpoints.currentPoint.name} から再開` : "一面開始", 120);
+      this.stageStartScore = carried
+        ? this.score.value
+        : keepScore
+          ? preservedStageStartScore
+          : this.score.value;
+      this.state.showMessage(
+        fromCheckpoint ? `${this.checkpoints.currentPoint.name} から再開` : `${this.currentStage.title} 開始`,
+        120
+      );
       this.audio.playStage(this.currentStage.bgm);
       if (!fromCheckpoint) this.startDialogue(this.currentStage.introScene);
+    }
+
+    advanceArcadeStage() {
+      const nextStageId = this.getNextStageId();
+      if (!nextStageId) {
+        this.returnToTitle();
+        return;
+      }
+      const carried = this.captureRunState();
+      this.start(false, true, nextStageId, carried);
     }
 
     returnToTitle() {
@@ -2572,16 +2640,21 @@
       this.particles = [];
       this.powerUpFlash = 0;
       this.grazeFlash = 0;
+      this.clearAdvanceTimer = 0;
       document.body.classList.remove("dialogue-active");
       this.audio.stopStage();
     }
 
     leaveClearScreen() {
-      const returnToStageSelect = this.currentStageId === "stage2";
+      if (this.currentMode === "arcade" && this.getNextStageId()) {
+        this.advanceArcadeStage();
+        return;
+      }
+      const returnToStageSelect = this.currentMode === "stageSelect";
       this.returnToTitle();
       if (returnToStageSelect) {
         this.titlePanel = "stage";
-        this.stageSelectMenu.index = 1;
+        this.stageSelectMenu.index = Math.max(0, STAGE_ORDER.indexOf(this.currentStageId));
         this.ensureTitleBGM();
       }
     }
@@ -2789,7 +2862,7 @@
       if (!selected || selected.disabled) return;
       const label = selected.label;
       this.audio.playSE("menu_decide");
-      if (label === "START GAME") this.start(false, false, "stage1");
+      if (label === "START GAME") this.beginArcade();
       if (label === "STAGE SELECT" && this.save.isStageCleared("stage1")) {
         this.titlePanel = "stage";
         this.stageSelectMenu.index = 0;
@@ -2830,7 +2903,7 @@
       const item = this.stageSelectMenu.selected();
       if (!item || item.disabled) return;
       this.audio.playSE("menu_decide");
-      if (item.action === "stage1" || item.action === "stage2") this.start(false, false, item.action);
+      if (item.action === "stage1" || item.action === "stage2") this.beginStageSelect(item.action);
     }
 
     moveMenu(menu, delta) {
@@ -3286,6 +3359,13 @@
       if (!this.dialogue.active && this.state.mode === "stage") this.updateStage(deltaTime);
       if (this.dialogue.active) return;
       if (this.state.mode === "paused" || this.state.mode === "gameover" || this.state.mode === "title") return;
+      if (this.state.mode === "clear" && this.clearAdvanceTimer > 0) {
+        this.clearAdvanceTimer -= 1;
+        if (this.clearAdvanceTimer === 0) {
+          this.advanceArcadeStage();
+          return;
+        }
+      }
       this.particles.forEach((p) => p.update());
       this.particles = this.particles.filter((p) => p.life > 0);
       this.state.shake = Math.max(0, this.state.shake - 1);
@@ -3758,13 +3838,15 @@
     }
 
     saveCurrentRun(cleared) {
+      const stageScore = Math.max(0, this.score.value - this.stageStartScore);
       this.save.saveRun(
         this.difficulty.current,
         this.currentStageId,
-        this.score.value,
+        stageScore,
         this.checkpoints.current,
         cleared,
-        this.continueCount
+        this.continueCount,
+        this.score.value
       );
     }
 
@@ -3786,6 +3868,9 @@
         this.state.showMessage(this.currentStage.clearMessage, 9999);
         this.startDialogue(this.currentStage.endingScene, () => {
           this.state.mode = "clear";
+          if (this.currentMode === "arcade" && this.getNextStageId()) {
+            this.clearAdvanceTimer = ARCADE_CLEAR_WAIT_FRAMES;
+          }
         });
       });
     }
@@ -4434,9 +4519,11 @@
       ctx.font = "15px system-ui, sans-serif";
       ctx.fillStyle = "#eaffdf";
       ctx.fillText(
-        this.currentStageId === "stage2"
-          ? "Z / Space / タップでSTAGE SELECTへ"
-          : "Z / Space / タップでタイトルから再開",
+        this.currentMode === "arcade" && this.getNextStageId()
+          ? "次のステージへ進みます　Z / Space / タップでスキップ"
+          : this.currentMode === "stageSelect"
+            ? "Z / Space / タップでSTAGE SELECTへ"
+            : "Z / Space / タップでタイトルへ",
         W / 2,
         footer ? 458 : 432
       );

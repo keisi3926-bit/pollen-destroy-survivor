@@ -1,8 +1,13 @@
 {
-  "version": "0.31.0",
+  "version": "0.32.0",
   "build": "2026-06-25",
   "status": "MVP公開準備版",
   "updates": [
+    {
+      "version": "0.32.0",
+      "date": "2026-06-25",
+      "summary": "START GAMEを通しプレイ化し、Stage1クリア後にスコア・残機・スペル・POWER・随履・グレイズを引き継いでStage2へ進行。Stage Selectは単体練習モードとして分離。"
+    },
     {
       "version": "0.31.0",
       "date": "2026-06-25",

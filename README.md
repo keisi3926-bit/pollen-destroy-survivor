@@ -41,6 +41,11 @@ Xboxコントローラー:
 - ポーズ: Menu
 - 戻る・会話スキップ: B
 
+## プレイモード
+
+- `START GAME`: Stage1から始める通しプレイ。スコア、残機、履技、POWER、随履、グレイズを次の実装済みステージへ引き継ぎます。
+- `STAGE SELECT`: 選択ステージだけを遊ぶ練習モード。クリア後はStage Selectへ戻ります。
+
 OPTIONS:
 
 - `BGM VOLUME`: BGM音量を0〜100で調整
