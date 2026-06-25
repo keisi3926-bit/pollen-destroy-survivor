@@ -50,6 +50,7 @@
     "pollen_release",
     "infinite_scatter",
     "player_hit",
+    "pichuun",
     "menu_move",
     "menu_decide",
     "menu_cancel",
@@ -89,7 +90,7 @@
     scorePerGraze: 50,
     milestones: [100, 500, 1000],
   };
-  const APP_VERSION = "0.24.0";
+  const APP_VERSION = "0.25.0";
   const FIXED_STEP_SECONDS = 1 / 60;
   const BOSS_DAMAGE_MULTIPLIER = 0.68;
   const INITIAL_CONTINUES = 3;
@@ -510,13 +511,40 @@
         easy: { highScore: 0, maxCheckpoint: 0, cleared: false, continues: 0 },
         normal: { highScore: 0, maxCheckpoint: 0, cleared: false, continues: 0 },
         hard: { highScore: 0, maxCheckpoint: 0, cleared: false, continues: 0 },
+        highScores: {
+          easy: { stage1: 0, total: 0 },
+          normal: { stage1: 0, total: 0 },
+          hard: { stage1: 0, total: 0 },
+        },
+        clearFlags: { stage1: false, stage2: false },
         settings: { lastDifficulty: "normal", volume: 0.5, gamepadEnabled: true },
       };
     }
 
     load() {
       try {
-        return { ...this.defaultData(), ...JSON.parse(localStorage.getItem(this.key) || "{}") };
+        const defaults = this.defaultData();
+        const stored = JSON.parse(localStorage.getItem(this.key) || "{}");
+        const data = {
+          ...defaults,
+          ...stored,
+          settings: { ...defaults.settings, ...(stored.settings || {}) },
+          clearFlags: { ...defaults.clearFlags, ...(stored.clearFlags || {}) },
+          highScores: {},
+        };
+        for (const difficulty of ["easy", "normal", "hard"]) {
+          data[difficulty] = { ...defaults[difficulty], ...(stored[difficulty] || {}) };
+          const legacyScore = data[difficulty].highScore || 0;
+          data.highScores[difficulty] = {
+            ...defaults.highScores[difficulty],
+            ...(stored.highScores?.[difficulty] || {}),
+          };
+          data.highScores[difficulty].stage1 = Math.max(data.highScores[difficulty].stage1 || 0, legacyScore);
+          data.highScores[difficulty].total = Math.max(data.highScores[difficulty].total || 0, legacyScore);
+          if (data[difficulty].cleared) data.clearFlags.stage1 = true;
+        }
+        localStorage.setItem(this.key, JSON.stringify(data));
+        return data;
       } catch {
         return this.defaultData();
       }
@@ -529,7 +557,19 @@
       current.cleared = Boolean(current.cleared || cleared);
       current.continues = Math.max(current.continues || 0, continues);
       this.data[difficulty] = current;
+      const difficultyScores = this.data.highScores[difficulty];
+      difficultyScores.stage1 = Math.max(difficultyScores.stage1 || 0, score);
+      difficultyScores.total = Math.max(difficultyScores.total || 0, score);
+      if (cleared) this.data.clearFlags.stage1 = true;
       localStorage.setItem(this.key, JSON.stringify(this.data));
+    }
+
+    getHighScore(difficulty, scope = "stage1") {
+      return this.data.highScores?.[difficulty]?.[scope] || 0;
+    }
+
+    isStageCleared(stageId) {
+      return Boolean(this.data.clearFlags?.[stageId]);
     }
 
     saveSettings(settings) {
@@ -678,6 +718,7 @@
       this.invincible = 130;
       game.cancelEnemyBullets(true);
       game.audio.playSE("player_hit", { cooldown: 120, maxVoices: 1 });
+      game.audio.playSE("pichuun", { cooldown: 120, maxVoices: 1 });
       game.spawnBurst(this.hitPoint.x, this.hitPoint.y, "#eafcff", 18);
       game.state.showMessage(hadLives ? "MISS - 復帰！" : "GAME OVER", 90);
       if (!hadLives) game.openGameOverMenu();
@@ -2098,7 +2139,11 @@
         this.suginomikotoCutinLoaded = false;
       };
       this.suginomikotoCutin.src = `${SUGINOMIKOTO_CUTIN_ASSET}?v=${APP_VERSION}`;
-      this.titleMenu = new MenuManager(["START GAME", "OPTIONS", "HOW TO PLAY", "HIGH SCORE"].map((label) => ({ label })));
+      this.titleMenu = new MenuManager();
+      this.stageSelectMenu = new MenuManager([
+        { label: "STAGE 1　春の花粉参道", action: "stage1" },
+        { label: "STAGE 2　COMING SOON", action: "stage2", disabled: true },
+      ]);
       this.optionsMenu = new MenuManager([
         { label: "BGM VOLUME", action: "bgm" },
         { label: "SE VOLUME", action: "se" },
@@ -2107,6 +2152,7 @@
       ]);
       this.pauseMenu = new MenuManager();
       this.gameOverMenu = new MenuManager();
+      this.pauseOptionsOpen = false;
       this.player = new Player();
       this.enemies = [];
       this.playerBullets = [];
@@ -2146,6 +2192,7 @@
       this.spellKeyHeld = false;
       this.spellPointerHeld = false;
       this.titlePanel = "main";
+      this.refreshTitleMenu();
       this.dialogue = new DialogueManager(DIALOGUE_SCENES, PORTRAIT_BASE, DIALOGUE_CONTEXT);
       this.lastTime = 0;
       this.updateAccumulator = 0;
@@ -2244,6 +2291,8 @@
     returnToTitle() {
       this.state.mode = "title";
       this.titlePanel = "main";
+      this.pauseOptionsOpen = false;
+      this.refreshTitleMenu();
       this.dialogue.active = false;
       this.enemies = [];
       this.playerBullets = [];
@@ -2457,6 +2506,16 @@
         if (key === "Escape") this.closeOptions();
         return;
       }
+      if (this.titlePanel === "stage") {
+        if (key === "ArrowUp" || key === "w" || key === "W") this.moveMenu(this.stageSelectMenu, -1);
+        if (key === "ArrowDown" || key === "s" || key === "S") this.moveMenu(this.stageSelectMenu, 1);
+        if (key === "z" || key === "Z" || key === " " || key === "Enter") this.activateStageSelectItem();
+        if (key === "Escape") {
+          this.audio.playSE("menu_cancel");
+          this.titlePanel = "main";
+        }
+        return;
+      }
       if (key === "ArrowUp" || key === "w" || key === "W") this.moveMenu(this.titleMenu, -1);
       if (key === "ArrowDown" || key === "s" || key === "S") this.moveMenu(this.titleMenu, 1);
       if (this.titleMenu.selected()?.label === "START GAME" && (key === "ArrowLeft" || key === "a" || key === "A")) this.changeDifficulty(-1);
@@ -2469,9 +2528,15 @@
     }
 
     activateTitleItem() {
-      const label = this.titleMenu.selected()?.label;
+      const selected = this.titleMenu.selected();
+      if (!selected || selected.disabled) return;
+      const label = selected.label;
       this.audio.playSE("menu_decide");
       if (label === "START GAME") this.start(false, false);
+      if (label === "STAGE SELECT" && this.save.isStageCleared("stage1")) {
+        this.titlePanel = "stage";
+        this.stageSelectMenu.index = 0;
+      }
       if (label === "OPTIONS") this.openOptions();
       if (label === "HOW TO PLAY") this.titlePanel = this.titlePanel === "how" ? "main" : "how";
       if (label === "HIGH SCORE") this.titlePanel = this.titlePanel === "score" ? "main" : "score";
@@ -2479,6 +2544,23 @@
 
     ensureTitleBGM() {
       if (this.state.mode === "title" && this.audio.currentBGMName !== "stage") this.audio.playBGM("stage", true);
+    }
+
+    refreshTitleMenu() {
+      this.titleMenu.setItems([
+        { label: "START GAME" },
+        { label: "STAGE SELECT", disabled: !this.save.isStageCleared("stage1") },
+        { label: "OPTIONS" },
+        { label: "HOW TO PLAY" },
+        { label: "HIGH SCORE" },
+      ]);
+    }
+
+    activateStageSelectItem() {
+      const item = this.stageSelectMenu.selected();
+      if (!item || item.disabled) return;
+      this.audio.playSE("menu_decide");
+      if (item.action === "stage1") this.start(false, false);
     }
 
     moveMenu(menu, delta) {
@@ -2493,6 +2575,10 @@
 
     closeOptions() {
       this.audio.playSE("menu_cancel");
+      if (this.state.mode === "paused" && this.pauseOptionsOpen) {
+        this.pauseOptionsOpen = false;
+        return;
+      }
       this.titlePanel = "main";
     }
 
@@ -2531,12 +2617,13 @@
     openPauseMenu() {
       if (this.state.mode !== "stage" || this.dialogue.active) return;
       this.state.mode = "paused";
+      this.pauseOptionsOpen = false;
       this.audio.pauseAll();
       this.pauseMenu.setItems([
         { label: "RESUME", action: "resume" },
-        { label: "RESTART", action: "restart", confirm: "ステージを最初からやり直しますか？" },
-        { label: "RETRY CHECKPOINT", action: "checkpoint", confirm: "最後のチェックポイントからやり直しますか？" },
-        { label: "TITLE", action: "title", confirm: "タイトル画面へ戻りますか？現在の進行は失われます" },
+        { label: "RETRY", action: "restart", confirm: "ステージを最初からやり直しますか？" },
+        { label: "TITLE", action: "title", confirm: "タイトルへ戻りますか？" },
+        { label: "OPTIONS", action: "options" },
       ]);
     }
 
@@ -2548,6 +2635,18 @@
     }
 
     handlePauseKey(key) {
+      if (this.pauseOptionsOpen) {
+        if (key === "ArrowUp" || key === "w" || key === "W") this.moveMenu(this.optionsMenu, -1);
+        if (key === "ArrowDown" || key === "s" || key === "S") this.moveMenu(this.optionsMenu, 1);
+        if (key === "ArrowLeft" || key === "a" || key === "A") this.adjustOption(-1);
+        if (key === "ArrowRight" || key === "d" || key === "D") this.adjustOption(1);
+        if (key === "z" || key === "Z" || key === " " || key === "Enter") {
+          if (this.optionsMenu.selected()?.action === "back") this.pauseOptionsOpen = false;
+          else this.activateOptionItem();
+        }
+        if (key === "Escape" || key === "p" || key === "P") this.pauseOptionsOpen = false;
+        return;
+      }
       if (key === "Escape" || key === "p" || key === "P") {
         this.audio.playSE("menu_cancel");
         if (this.pauseMenu.confirm) this.pauseMenu.confirm = null;
@@ -2579,9 +2678,18 @@
     executePauseAction(action) {
       this.pauseMenu.confirm = null;
       if (action === "resume") this.resumeFromPause();
-      if (action === "restart") this.start(false, false);
-      if (action === "checkpoint") this.start(true, true);
-      if (action === "title") this.returnToTitle();
+      if (action === "restart") {
+        this.saveCurrentRun(false);
+        this.start(false, false);
+      }
+      if (action === "title") {
+        this.saveCurrentRun(false);
+        this.returnToTitle();
+      }
+      if (action === "options") {
+        this.pauseOptionsOpen = true;
+        this.optionsMenu.index = 0;
+      }
     }
 
     openGameOverMenu() {
@@ -2590,14 +2698,26 @@
       this.saveCurrentRun(false);
       this.gameOverMenu.setItems([
         { label: "CONTINUE", action: "continue", disabled: this.continuesLeft <= 0 },
-        { label: "RETRY", action: "retry" },
-        { label: "TITLE", action: "title" },
+        { label: "RETRY", action: "retry", confirm: "ステージを最初からやり直しますか？" },
+        { label: "RETRY FROM CHECKPOINT", action: "checkpoint", confirm: "最後のチェックポイントから再開しますか？" },
+        { label: "TITLE", action: "title", confirm: "タイトルへ戻りますか？" },
       ]);
     }
 
     handleGameOverKey(key) {
+      if (key === "Escape" && this.gameOverMenu.confirm) {
+        this.audio.playSE("menu_cancel");
+        this.gameOverMenu.confirm = null;
+        return;
+      }
       if (key === "ArrowUp" || key === "w" || key === "W") this.moveMenu(this.gameOverMenu, -1);
       if (key === "ArrowDown" || key === "s" || key === "S") this.moveMenu(this.gameOverMenu, 1);
+      if (
+        this.gameOverMenu.confirm
+        && (key === "ArrowLeft" || key === "ArrowRight" || key === "a" || key === "d" || key === "A" || key === "D")
+      ) {
+        this.moveMenu(this.gameOverMenu, 1);
+      }
       if (key === "Escape") {
         this.audio.playSE("menu_cancel");
         this.returnToTitle();
@@ -2607,11 +2727,26 @@
 
     activateGameOverItem() {
       this.audio.playSE("menu_decide");
+      if (this.gameOverMenu.confirm) {
+        if (this.gameOverMenu.confirm.choice === 0) this.executeGameOverAction(this.gameOverMenu.confirm.action);
+        else this.gameOverMenu.confirm = null;
+        return;
+      }
       const item = this.gameOverMenu.selected();
       if (!item || item.disabled) return;
-      if (item.action === "continue") this.continueFromCheckpoint();
-      if (item.action === "retry") this.start(false, false);
-      if (item.action === "title") this.returnToTitle();
+      if (item.confirm) {
+        this.gameOverMenu.confirm = { text: item.confirm, action: item.action, choice: 1 };
+        return;
+      }
+      this.executeGameOverAction(item.action);
+    }
+
+    executeGameOverAction(action) {
+      this.gameOverMenu.confirm = null;
+      if (action === "continue") this.continueFromCheckpoint();
+      if (action === "retry") this.start(false, false);
+      if (action === "checkpoint") this.start(true, true);
+      if (action === "title") this.returnToTitle();
     }
 
     continueFromCheckpoint() {
@@ -2653,12 +2788,20 @@
           const action = this.optionsMenu.selected()?.action;
           if (action === "bgm" || action === "se") this.adjustOption(pos.x < W / 2 ? -1 : 1);
           else this.activateOptionItem();
+        } else if (this.titlePanel === "stage") {
+          this.stageSelectMenu.index = hit;
+          this.activateStageSelectItem();
         } else {
           this.titleMenu.index = hit;
           this.activateTitleItem();
         }
       } else if (this.state.mode === "paused") {
-        if (this.pauseMenu.confirm) {
+        if (this.pauseOptionsOpen) {
+          this.optionsMenu.index = hit;
+          const action = this.optionsMenu.selected()?.action;
+          if (action === "bgm" || action === "se") this.adjustOption(pos.x < W / 2 ? -1 : 1);
+          else this.activateOptionItem();
+        } else if (this.pauseMenu.confirm) {
           this.pauseMenu.confirm.choice = hit;
           this.activatePauseItem();
         } else {
@@ -2666,8 +2809,13 @@
           this.activatePauseItem();
         }
       } else if (this.state.mode === "gameover") {
-        this.gameOverMenu.index = hit;
-        this.activateGameOverItem();
+        if (this.gameOverMenu.confirm) {
+          this.gameOverMenu.confirm.choice = hit;
+          this.activateGameOverItem();
+        } else {
+          this.gameOverMenu.index = hit;
+          this.activateGameOverItem();
+        }
       }
       return true;
     }
@@ -2693,7 +2841,9 @@
         if (y >= 462 && y <= 512) return x < W / 2 ? 0 : 1;
         return null;
       }
-      const startY = this.state.mode === "title" ? (this.titlePanel === "options" ? 365 : 395) : 345;
+      const startY = this.state.mode === "title"
+        ? (this.titlePanel === "options" ? 365 : this.titlePanel === "stage" ? 395 : 350)
+        : (this.pauseOptionsOpen ? 365 : 345);
       for (let i = 0; i < menu.items.length; i += 1) {
         const top = startY + i * 48;
         if (y >= top && y <= top + 38) return i;
@@ -2702,8 +2852,12 @@
     }
 
     getActiveMenu() {
-      if (this.state.mode === "title") return this.titlePanel === "options" ? this.optionsMenu : this.titleMenu;
-      if (this.state.mode === "paused") return this.pauseMenu;
+      if (this.state.mode === "title") {
+        if (this.titlePanel === "options") return this.optionsMenu;
+        if (this.titlePanel === "stage") return this.stageSelectMenu;
+        return this.titleMenu;
+      }
+      if (this.state.mode === "paused") return this.pauseOptionsOpen ? this.optionsMenu : this.pauseMenu;
       if (this.state.mode === "gameover") return this.gameOverMenu;
       return null;
     }
@@ -2761,10 +2915,15 @@
       }
 
       if (this.state.mode === "title") {
-        const titleMenu = this.titlePanel === "options" ? this.optionsMenu : this.titleMenu;
+        const titleMenu = this.titlePanel === "options"
+          ? this.optionsMenu
+          : this.titlePanel === "stage"
+            ? this.stageSelectMenu
+            : this.titleMenu;
         this.handleGamepadMenu(buttons, justPressed, axisX, axisY, titleMenu);
         if (justPressed(0)) {
           if (this.titlePanel === "options") this.activateOptionItem();
+          else if (this.titlePanel === "stage") this.activateStageSelectItem();
           else this.activateTitleItem();
         }
         if (justPressed(1)) {
@@ -2775,16 +2934,24 @@
           }
         }
       } else if (this.state.mode === "paused") {
-        this.handleGamepadMenu(buttons, justPressed, axisX, axisY, this.pauseMenu);
-        if (justPressed(0)) this.activatePauseItem();
+        const pauseActiveMenu = this.pauseOptionsOpen ? this.optionsMenu : this.pauseMenu;
+        this.handleGamepadMenu(buttons, justPressed, axisX, axisY, pauseActiveMenu);
+        if (justPressed(0)) {
+          if (this.pauseOptionsOpen) this.activateOptionItem();
+          else this.activatePauseItem();
+        }
         if (justPressed(1) || justPressed(8) || justPressed(9)) {
-          if (this.pauseMenu.confirm) this.pauseMenu.confirm = null;
+          if (this.pauseOptionsOpen) this.pauseOptionsOpen = false;
+          else if (this.pauseMenu.confirm) this.pauseMenu.confirm = null;
           else this.resumeFromPause();
         }
       } else if (this.state.mode === "gameover") {
         this.handleGamepadMenu(buttons, justPressed, axisX, axisY, this.gameOverMenu);
         if (justPressed(0)) this.activateGameOverItem();
-        if (justPressed(1)) this.returnToTitle();
+        if (justPressed(1)) {
+          if (this.gameOverMenu.confirm) this.gameOverMenu.confirm = null;
+          else this.returnToTitle();
+        }
       } else if (this.state.mode === "stage") {
         if (justPressed(2)) this.activatePlayerSpell();
         if (justPressed(8) || justPressed(9)) this.openPauseMenu();
@@ -3774,7 +3941,21 @@
         this.drawOptions();
         return;
       }
-      this.drawMenu(this.titleMenu, 395, (item) => {
+      if (this.titlePanel === "stage") {
+        ctx.fillStyle = "#f8ffe9";
+        ctx.font = "900 28px system-ui, sans-serif";
+        ctx.fillText("STAGE SELECT", W / 2, 360);
+        this.drawMenu(this.stageSelectMenu, 395);
+        ctx.fillStyle = "#fff0a8";
+        ctx.font = "700 14px system-ui, sans-serif";
+        ctx.fillText(`STAGE 1 HIGH SCORE  ${this.save.getHighScore(this.difficulty.current, "stage1")}`, W / 2, 520);
+        ctx.fillStyle = "rgba(239, 255, 237, 0.75)";
+        ctx.font = "13px system-ui, sans-serif";
+        ctx.fillText("Stage2は将来のアップデートで解放予定", W / 2, 560);
+        ctx.fillText("Esc / B で戻る", W / 2, 584);
+        return;
+      }
+      this.drawMenu(this.titleMenu, 350, (item) => {
         return item.label;
       });
       ctx.fillStyle = "rgba(239, 255, 237, 0.82)";
@@ -3785,10 +3966,10 @@
         ctx.fillText("マウス: 移動  左ボタンショット  右クリック履技", W / 2, 658);
         ctx.fillText("Xbox: 左スティック/D-pad移動  Aショット/決定  X履技  LB/RB低速", W / 2, 682);
       } else if (this.titlePanel === "score") {
-        const save = this.save.data;
-        ctx.fillText(`EASY ${save.easy.highScore} / CP${save.easy.maxCheckpoint} / ${save.easy.cleared ? "CLEAR" : "未クリア"}`, W / 2, 598);
-        ctx.fillText(`NORMAL ${save.normal.highScore} / CP${save.normal.maxCheckpoint} / ${save.normal.cleared ? "CLEAR" : "未クリア"}`, W / 2, 622);
-        ctx.fillText(`HARD ${save.hard.highScore} / CP${save.hard.maxCheckpoint} / ${save.hard.cleared ? "CLEAR" : "未クリア"}`, W / 2, 646);
+        ctx.fillText(`EASY　STAGE1 ${this.save.getHighScore("easy", "stage1")}　TOTAL ${this.save.getHighScore("easy", "total")}`, W / 2, 610);
+        ctx.fillText(`NORMAL　STAGE1 ${this.save.getHighScore("normal", "stage1")}　TOTAL ${this.save.getHighScore("normal", "total")}`, W / 2, 634);
+        ctx.fillText(`HARD　STAGE1 ${this.save.getHighScore("hard", "stage1")}　TOTAL ${this.save.getHighScore("hard", "total")}`, W / 2, 658);
+        ctx.fillText(`STAGE1 ${this.save.isStageCleared("stage1") ? "CLEAR" : "未クリア"}`, W / 2, 682);
       } else {
         ctx.fillStyle = "rgba(0, 0, 0, 0.42)";
         ctx.fillRect(86, 594, W - 172, 38);
@@ -3799,7 +3980,8 @@
         ctx.fillText(`DIFFICULTY  < ${this.difficulty.label} >`, W / 2, 619);
         ctx.fillStyle = "rgba(239, 255, 237, 0.82)";
         ctx.font = "13px system-ui, sans-serif";
-        ctx.fillText("上下で選択、START選択中の左右で難易度変更", W / 2, 660);
+        ctx.fillText(`HIGH SCORE  ${this.save.getHighScore(this.difficulty.current, "stage1")}`, W / 2, 654);
+        ctx.fillText("上下で選択、START選択中の左右で難易度変更", W / 2, 680);
       }
     }
 
@@ -3849,6 +4031,10 @@
       ctx.fillStyle = "#f6fff1";
       ctx.font = "900 34px system-ui, sans-serif";
       ctx.fillText("PAUSE", W / 2, 280);
+      if (this.pauseOptionsOpen) {
+        this.drawOptions();
+        return;
+      }
       this.drawMenu(this.pauseMenu, 345);
       this.drawConfirm(this.pauseMenu);
     }
@@ -3864,6 +4050,7 @@
       ctx.font = "15px system-ui, sans-serif";
       ctx.fillText(`CONTINUE ${this.continuesLeft} / SCORE ${this.score.value}`, W / 2, 305);
       this.drawMenu(this.gameOverMenu, 345);
+      this.drawConfirm(this.gameOverMenu);
     }
 
     drawConfirm(menu) {

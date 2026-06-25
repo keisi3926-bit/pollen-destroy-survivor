@@ -1,4 +1,4 @@
-const CACHE_VERSION = "pollen-destroy-slipper-v0.24.0";
+const CACHE_VERSION = "pollen-destroy-slipper-v0.25.0";
 const APP_SHELL = [
   "./",
   "index.html",
@@ -29,6 +29,7 @@ const APP_SHELL = [
   "assets/audio/se/pollen_release.wav",
   "assets/audio/se/infinite_scatter.wav",
   "assets/audio/se/player_hit.wav",
+  "assets/audio/se/pichuun.wav",
   "assets/audio/se/menu_move.wav",
   "assets/audio/se/menu_decide.wav",
   "assets/audio/se/menu_cancel.wav",

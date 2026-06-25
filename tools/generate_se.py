@@ -238,8 +238,18 @@ def generate_all() -> None:
         lambda t, d: 0.66 * chirp(720, 1060, t, d) + 0.18 * sine(1440, t),
         peak=0.46,
     )
+    render(
+        "pichuun.wav",
+        0.32,
+        lambda t, d: (
+            0.56 * chirp(1580, 190, t, d)
+            + 0.24 * sine(2100 - 1450 * min(1, t / d), t)
+            + 0.18 * noise() * math.exp(-12 * t)
+        ),
+        peak=0.66,
+    )
 
 
 if __name__ == "__main__":
     generate_all()
-    print(f"Generated 26 sound effects in {OUTPUT_DIR}")
+    print(f"Generated 27 sound effects in {OUTPUT_DIR}")
