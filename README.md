@@ -167,8 +167,7 @@ python -m http.server 8000
 
 ## Stage2 BGM
 
-Stage2道中曲には「檜風疾走 - general of the cypress forest」を使用しています。
-`assets/audio/boss2_theme.mp3` は専用音源を受け取るまでの仮BGMです。同じファイル名で差し替えれば、ゲームコードを変更せず更新できます。
+Stage2道中曲には「檜風疾走 - general of the cypress forest」、ボス曲には「ヒノキ将軍見参！」を使用しています。
 
 ## SE再生成
 
