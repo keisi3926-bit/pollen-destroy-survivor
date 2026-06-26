@@ -434,6 +434,10 @@ assert.equal(game.pointItems.length, 0, "point item should be removed immediatel
 assert.equal(pointItem.collected, true, "point item should set collected flag");
 assert.equal(game.score.value, pointScoreBefore + pointItem.scoreValue, "point item should add its score value");
 
+game.dialogue.start("scene_intro");
+assert.equal(game.dialogue.resolvePortraitLine("left").portrait, "player.png");
+assert.equal(game.dialogue.resolvePortraitLine("right"), null, "intro should not show an unused boss portrait");
+game.dialogue.completeNow();
 game.dialogue.start("scene_boss");
 assert.equal(game.dialogue.resolvePortraitLine("left").portrait, "player.png");
 assert.equal(game.dialogue.resolvePortraitLine("right").portrait, "suginomikoto.png");
@@ -445,6 +449,10 @@ game.draw();
 assert.ok(game.getCutinSlideX(82, 82, 1) > 0, "Haou cut-in should start outside the right edge");
 assert.equal(game.getCutinSlideX(50, 82, 1), 0, "Haou cut-in should stop in the center");
 assert.ok(game.getCutinSlideX(5, 82, 1) < 0, "Haou cut-in should leave through the left edge");
+game.dialogue.completeNow();
+game.dialogue.start("scene_ending");
+assert.equal(game.dialogue.resolvePortraitLine("left").portrait, "player.png");
+assert.equal(game.dialogue.resolvePortraitLine("right"), null, "ending should not keep the boss portrait after defeat");
 game.dialogue.completeNow();
 
 game.state.mode = "stage";

@@ -107,7 +107,7 @@
     scorePerGraze: 50,
     milestones: [100, 500, 1000],
   };
-  const APP_VERSION = "0.37.1";
+  const APP_VERSION = "0.37.2";
   const STAGE_ORDER = ["stage1", "stage2", "stage3"];
   const ARCADE_CLEAR_WAIT_FRAMES = 150;
   const FIXED_STEP_SECONDS = 1 / 60;
@@ -2254,6 +2254,7 @@
     drawPortrait(ctx, side, activeLine) {
       const isActive = activeLine.side === side;
       const portraitLine = isActive ? activeLine : this.resolvePortraitLine(side);
+      if (!portraitLine) return;
       const fileName = portraitLine?.portrait || null;
       const speaker = this.resolveSpeaker(portraitLine?.speaker) || (side === "left" ? this.dialogueContext.playerName : this.dialogueContext.bossName);
       const record = this.getPortrait(fileName);
@@ -4622,6 +4623,7 @@
         const barWidth = W - 108;
         const barHeight = 9;
         const barGap = 4;
+        const barBaseY = 86;
         const hpColor = (ratio) => {
           if (ratio >= 0.6) return "#68db62";
           if (ratio > 0.3) return "#f2d64b";
@@ -4641,13 +4643,13 @@
         const currentCard = this.boss.currentCard;
         const currentRatio = currentCard?.survival ? 1 : Math.max(0, this.boss.hp / this.boss.maxHp);
         if (this.boss.cardIndex === 0) {
-          drawLifeBar(45, currentRatio);
+          drawLifeBar(barBaseY, currentRatio);
         } else {
           // 1本目の破壊後に残り2本を追加し、下段（第2ライフ）から削る。
           const phase3State = this.boss.cardIndex === 2 ? "current" : "reserve";
           const phase2State = this.boss.cardIndex === 1 ? "current" : "empty";
-          drawLifeBar(45, this.boss.cardIndex === 2 ? currentRatio : 1, phase3State);
-          drawLifeBar(45 + barHeight + barGap, this.boss.cardIndex === 1 ? currentRatio : 0, phase2State);
+          drawLifeBar(barBaseY, this.boss.cardIndex === 2 ? currentRatio : 1, phase3State);
+          drawLifeBar(barBaseY + barHeight + barGap, this.boss.cardIndex === 1 ? currentRatio : 0, phase2State);
         }
         if (this.boss.currentCard && this.boss.currentCard.isSpell) {
           const card = this.boss.currentCard;
@@ -4656,11 +4658,12 @@
             : Math.max(0, Math.ceil((card.duration - card.age) / 60));
           const survivalUrgent = card.survival && card.survivalTimer <= 10;
           ctx.fillStyle = survivalUrgent ? "rgba(102, 18, 14, 0.86)" : "rgba(8, 18, 15, 0.76)";
-          ctx.fillRect(78, 88, W - 156, 28);
+          const spellBoxY = this.boss.cardIndex === 0 ? barBaseY + 16 : barBaseY + barHeight * 2 + barGap + 9;
+          ctx.fillRect(78, spellBoxY, W - 156, 28);
           ctx.fillStyle = survivalUrgent ? "#fff0e8" : "#fff1a8";
           ctx.font = `800 ${survivalUrgent ? 18 : 15}px system-ui, sans-serif`;
           ctx.textAlign = "center";
-          ctx.fillText(card.survival ? `SURVIVE  ${rest}` : `${card.name}  ${rest}`, W / 2, 108);
+          ctx.fillText(card.survival ? `SURVIVE  ${rest}` : `${card.name}  ${rest}`, W / 2, spellBoxY + 20);
         }
       }
 
