@@ -491,6 +491,7 @@ game.boss.update(game);
 finishBossCardTransition();
 assert.equal(game.boss.currentCard.pattern, "cedarFinal", "Suginomikoto final spell should restore the cedar lane laser pattern");
 assert.equal(game.boss.currentCard.lifeBars, 3, "final divine attack should use three HP bars");
+assert.equal(game.boss.currentCard.duration, 3000, "NORMAL final divine attack should allow more time per HP gauge");
 game.boss.currentCard.hp = Math.floor(game.boss.currentCard.maxHp / 2);
 game.boss.currentCard.age = game.boss.currentCard.duration;
 game.boss.update(game);

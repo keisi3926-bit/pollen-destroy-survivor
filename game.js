@@ -107,7 +107,7 @@
     scorePerGraze: 50,
     milestones: [100, 500, 1000],
   };
-  const APP_VERSION = "0.37.7";
+  const APP_VERSION = "0.37.8";
   const STAGE_ORDER = ["stage1", "stage2", "stage3"];
   const ARCADE_CLEAR_WAIT_FRAMES = 150;
   const FIXED_STEP_SECONDS = 1 / 60;
@@ -275,7 +275,14 @@
             survival: true,
             survivalTimes: { easy: 40, normal: 35, hard: 30 },
           },
-          { name: "終神威「杉並木封鎖」", duration: 2400, hp: 620, pattern: "cedarFinal", lifeBars: 3 },
+          {
+            name: "終神威「杉並木封鎖」",
+            duration: 2580,
+            durationTimes: { easy: 3300, normal: 3000, hard: 2580 },
+            hp: 620,
+            pattern: "cedarFinal",
+            lifeBars: 3,
+          },
         ],
       },
     },
@@ -321,7 +328,14 @@
             survival: true,
             survivalTimeMultiplier: 1,
           },
-          { name: "第三神威「千檜封鎖」", duration: 2520, hp: 760, pattern: "hinokiFinal", lifeBars: 3 },
+          {
+            name: "第三神威「千檜封鎖」",
+            duration: 2700,
+            durationTimes: { easy: 3480, normal: 3180, hard: 2700 },
+            hp: 760,
+            pattern: "hinokiFinal",
+            lifeBars: 3,
+          },
         ],
       },
     },
@@ -367,7 +381,14 @@
             survival: true,
             survivalTimeMultiplier: 1,
           },
-          { name: "大神威「荒野花粉葬」", duration: 2700, hp: 850, pattern: "ragweedWastelandFuneral", lifeBars: 3 },
+          {
+            name: "大神威「荒野花粉葬」",
+            duration: 2880,
+            durationTimes: { easy: 3660, normal: 3360, hard: 2880 },
+            hp: 850,
+            pattern: "ragweedWastelandFuneral",
+            lifeBars: 3,
+          },
         ],
       },
     },
