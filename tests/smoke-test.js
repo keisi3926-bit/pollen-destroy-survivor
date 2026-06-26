@@ -588,6 +588,23 @@ assert.equal(game.save.data.highScores.hard.stage2, 5679, "Stage2 high score sho
 assert.equal(game.save.data.highScores.hard.total, 60000, "arcade total high score should store the carried run total");
 game.state.mode = "clear";
 game.leaveClearScreen();
+assert.equal(game.currentStageId, "stage3", "arcade Stage2 clear should automatically advance to Stage3");
+assert.equal(game.currentMode, "arcade", "Stage3 transition should preserve arcade mode");
+assert.equal(game.score.value, 60000, "Stage3 transition should preserve the carried total score");
+assert.equal(game.life.lives, 5, "Stage3 transition should preserve slipper stock");
+assert.equal(game.power.value, 12, "Stage3 transition should preserve power");
+assert.equal(game.grazeCount, 234, "Stage3 transition should preserve graze count");
+assert.equal(game.stageStartScore, 60000, "Stage3 score accounting should begin at the carried total");
+assert.equal(game.currentStage.boss.name, "ロード・ラグウィード", "Stage3 should define Lord Ragweed as its boss");
+assert.equal(game.currentStage.bossLabel, "三面ボス", "Stage3 boss banner should identify the third stage");
+assert.equal(game.currentStage.boss.spellCards[1].survival, true, "Stage3 second divine attack should be survival");
+assert.ok(game.background.image.src.includes("stage3_autumn_pollen_road.png"), "Stage3 should use the autumn pollen road background");
+game.save.data.highScores.hard.stage3 = 0;
+game.score.value = 70000;
+game.saveCurrentRun(false);
+assert.equal(game.save.data.highScores.hard.stage3, 10000, "Stage3 high score should store only points earned in Stage3");
+game.state.mode = "clear";
+game.leaveClearScreen();
 assert.equal(game.state.mode, "title", "final implemented arcade stage should return to title");
 assert.equal(game.titlePanel, "main", "arcade completion should return to the main title menu");
 

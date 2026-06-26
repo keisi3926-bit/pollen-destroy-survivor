@@ -28,16 +28,21 @@
   const PORTRAIT_BASE = "assets/characters/";
   const BACKGROUND_STAGE1 = "assets/backgrounds/stage1_pollen_sando.png";
   const BACKGROUND_STAGE2 = "assets/backgrounds/stage2_hinoki_road.jpg";
+  const BACKGROUND_STAGE3 = "assets/backgrounds/stage3_autumn_pollen_road.png";
   const BGM_STAGE1 = "assets/audio/stage1_spring_pollen_path.mp3";
   const BGM_BOSS1 = "assets/audio/boss_suginomikoto.mp3";
   const BGM_STAGE2 = "assets/audio/stage2_theme.mp3";
   const BGM_BOSS2 = "assets/audio/boss2_theme.mp3";
+  const BGM_STAGE3 = "assets/audio/bgm/stage3_theme.mp3";
+  const BGM_BOSS3 = "assets/audio/bgm/boss3_theme.mp3";
   const AUDIO_SETTINGS_KEY = "pollenDestroySlipperAudioSettings";
   const BGM_SOURCES = {
     stage1: BGM_STAGE1,
     boss1: BGM_BOSS1,
     stage2: BGM_STAGE2,
     boss2: BGM_BOSS2,
+    stage3: BGM_STAGE3,
+    boss3: BGM_BOSS3,
   };
   const SE_NAMES = [
     "item_p_small",
@@ -78,11 +83,14 @@
   const PLAYER_ASSET = "assets/characters/player.png";
   const BOSS_ASSET = "assets/characters/suginomikoto.png";
   const HINOKI_BOSS_ASSET = "assets/characters/hinoki_shogun.png";
+  const LORD_RAGWEED_ASSET = "assets/characters/lord_ragweed.png";
   const POLLEN_ENEMY_ASSET = "assets/enemies/pollen_enemies.png";
   const HINOKI_ENEMY_ASSET = "assets/enemies/hinoki_enemies.png";
+  const STAGE3_ENEMY_ASSET = "assets/enemies/stage3_enemies.png";
   const SLIPPER_NOVA_CUTIN_ASSET = "assets/cutin/haou_slipper_nova.png";
   const SUGINOMIKOTO_CUTIN_ASSET = "assets/cutin/suginomikoto_divine_attack.png";
   const HINOKI_SHOGUN_CUTIN_ASSET = "assets/cutin/hinoki_shogun_divine_attack.png";
+  const LORD_RAGWEED_CUTIN_ASSET = "assets/cutin/lord_ragweed_cutin.png";
   const PLAYER_CUTIN_FRAMES = 82;
   const BOSS_CUTIN_FRAMES = 74;
   const MOBILE_CONTROLS = {
@@ -99,8 +107,8 @@
     scorePerGraze: 50,
     milestones: [100, 500, 1000],
   };
-  const APP_VERSION = "0.36.0";
-  const STAGE_ORDER = ["stage1", "stage2"];
+  const APP_VERSION = "0.37.0";
+  const STAGE_ORDER = ["stage1", "stage2", "stage3"];
   const ARCADE_CLEAR_WAIT_FRAMES = 150;
   const FIXED_STEP_SECONDS = 1 / 60;
   const BOSS_DAMAGE_MULTIPLIER = 0.68;
@@ -169,6 +177,20 @@
     { time: 2670, pattern: "hinokiHeavyEscort" },
     { time: 2960, pattern: "hinokiFanFinale" },
     { time: 3280, pattern: "hinokiGuard" },
+  ];
+  const STAGE3_WAVES = [
+    { time: 90, pattern: "ragweedBeeRush" },
+    { time: 330, pattern: "ragweedEyeCircle" },
+    { time: 590, pattern: "ragweedPincer" },
+    { time: 860, pattern: "ragweedSpiderFan" },
+    { time: 1140, pattern: "ragweedBeeCross" },
+    { time: 1430, pattern: "ragweedMixedAmbush" },
+    { time: 1720, pattern: "ragweedEyePair" },
+    { time: 2020, pattern: "ragweedSpiderLine" },
+    { time: 2320, pattern: "ragweedPincer" },
+    { time: 2620, pattern: "ragweedMixedAmbush" },
+    { time: 2920, pattern: "ragweedAutumnStorm" },
+    { time: 3260, pattern: "ragweedGate" },
   ];
   const EXTEND_THRESHOLDS = [30000, 80000, 150000];
   const DIFFICULTY_CONFIG = {
@@ -286,6 +308,45 @@
             survivalTimeMultiplier: 1,
           },
           { name: "第三神威「千檜封鎖」", duration: 2520, hp: 760, pattern: "hinokiFinal" },
+        ],
+      },
+    },
+    stage3: {
+      id: "stage3",
+      title: "三面　秋花粉の廃道",
+      selectLabel: "STAGE 3　秋花粉の廃道",
+      bossLabel: "三面ボス",
+      background: BACKGROUND_STAGE3,
+      bgm: "stage3",
+      bossBgm: "boss3",
+      waves: STAGE3_WAVES,
+      bossTime: 3540,
+      warning: "秋花粉濃度、危険域",
+      enemyFamily: "ragweed",
+      introScene: null,
+      bossScene: "stage3_boss_intro",
+      clearScene: "stage3_boss_defeat",
+      endingScene: "stage3_clear",
+      clearMessage: "STAGE3 CLEAR",
+      clearSubtitle: "秋花粉、撃破完了",
+      clearFooter: "TO BE CONTINUED",
+      boss: {
+        name: "ロード・ラグウィード",
+        asset: LORD_RAGWEED_ASSET,
+        cutin: LORD_RAGWEED_CUTIN_ASSET,
+        cutinLabel: "LORD RAGWEED",
+        imageCrop: null,
+        spellCards: [
+          { name: "神威「秋塵毒花」", duration: 960, hp: 510, pattern: "ragweedPoisonBloom", type: "spell" },
+          {
+            name: "神威「雑草迷霧」",
+            duration: 1800,
+            hp: 1,
+            pattern: "ragweedMistSurvival",
+            survival: true,
+            survivalTimeMultiplier: 1,
+          },
+          { name: "大神威「荒野花粉葬」", duration: 2700, hp: 850, pattern: "ragweedWastelandFuneral" },
         ],
       },
     },
@@ -490,6 +551,48 @@
       { speaker: "player", text: "杉の次は檜。", portrait: "player.png", side: "left" },
       { speaker: "player", text: "花粉って、ほんと段階制なんだな……。", portrait: "player.png", side: "left" },
     ],
+    stage3_boss_intro: [
+      { speaker: "boss", text: "ようこそ、秋花粉の廃道へ。", portrait: "lord_ragweed.png", side: "right" },
+      { speaker: "boss", text: "杉を越え、檜を越え……なお進むか。", portrait: "lord_ragweed.png", side: "right" },
+      { speaker: "player", text: "進みたくて進んでるわけじゃない。", portrait: "player.png", side: "left" },
+      { speaker: "player", text: "鼻と目が限界なんだよ。", portrait: "player.png", side: "left" },
+      { speaker: "boss", text: "ならば喜べ。", portrait: "lord_ragweed.png", side: "right" },
+      { speaker: "boss", text: "ここから先は、春だけの地獄ではない。", portrait: "lord_ragweed.png", side: "right" },
+      { speaker: "player", text: "秋花粉まで出てくるな！", portrait: "player.png", side: "left" },
+      { speaker: "boss", text: "我が名はロード・ラグウィード。", portrait: "lord_ragweed.png", side: "right" },
+      { speaker: "boss", text: "荒れ地に根を張る、第三の花粉王。", portrait: "lord_ragweed.png", side: "right" },
+      { speaker: "player", text: "王とか将軍とか、花粉のくせに肩書きが重いんだよ。", portrait: "player.png", side: "left" },
+      { speaker: "boss", text: "軽い花粉ほど、遠くまで届く。", portrait: "lord_ragweed.png", side: "right" },
+      { speaker: "player", text: "それは名言っぽく言うことじゃない。", portrait: "player.png", side: "left" },
+      { speaker: "boss", text: "では始めよう。", portrait: "lord_ragweed.png", side: "right" },
+      { speaker: "boss", text: "神威――秋塵毒花。", portrait: "lord_ragweed.png", side: "right" },
+      { speaker: "player", text: "来い。", portrait: "player.png", side: "left" },
+      { speaker: "player", text: "秋ごと叩き落としてやる。", portrait: "player.png", side: "left" },
+    ],
+    stage3_boss_defeat: [
+      { speaker: "boss", text: "……見事。", portrait: "lord_ragweed.png", side: "right" },
+      { speaker: "boss", text: "我が毒花粉を、ここまで払うとは。", portrait: "lord_ragweed.png", side: "right" },
+      { speaker: "player", text: "これで少しは空気がマシになるな。", portrait: "player.png", side: "left" },
+      { speaker: "boss", text: "空気は巡る。", portrait: "lord_ragweed.png", side: "right" },
+      { speaker: "boss", text: "花粉もまた、巡る。", portrait: "lord_ragweed.png", side: "right" },
+      { speaker: "player", text: "やめろ。", portrait: "player.png", side: "left" },
+      { speaker: "player", text: "循環型社会みたいに言うな。", portrait: "player.png", side: "left" },
+      { speaker: "boss", text: "次なる者は、さらに白く、さらに静かだ。", portrait: "lord_ragweed.png", side: "right" },
+      { speaker: "player", text: "白い花粉？", portrait: "player.png", side: "left" },
+      { speaker: "boss", text: "シラカバ・プリースト。", portrait: "lord_ragweed.png", side: "right" },
+      { speaker: "boss", text: "祈りのように舞い、呪いのように積もる花粉。", portrait: "lord_ragweed.png", side: "right" },
+      { speaker: "player", text: "花粉が祈るな。", portrait: "player.png", side: "left" },
+      { speaker: "boss", text: "進むがいい、スリッパの王よ。", portrait: "lord_ragweed.png", side: "right" },
+      { speaker: "boss", text: "季節は、まだ終わらぬ。", portrait: "lord_ragweed.png", side: "right" },
+      { speaker: "player", text: "終われ。", portrait: "player.png", side: "left" },
+    ],
+    stage3_clear: [
+      { speaker: "system", text: "STAGE3 CLEAR", portrait: "player.png", side: "left" },
+      { speaker: "system", text: "秋花粉、撃破完了", portrait: "player.png", side: "left" },
+      { speaker: "system", text: "TO BE CONTINUED", portrait: "player.png", side: "left" },
+      { speaker: "player", text: "春を抜けたら秋だった。", portrait: "player.png", side: "left" },
+      { speaker: "player", text: "花粉って、季節をまたぐなよ……。", portrait: "player.png", side: "left" },
+    ],
   };
 
   class GameState {
@@ -660,11 +763,11 @@
         normal: { highScore: 0, maxCheckpoint: 0, cleared: false, continues: 0 },
         hard: { highScore: 0, maxCheckpoint: 0, cleared: false, continues: 0 },
         highScores: {
-          easy: { stage1: 0, stage2: 0, total: 0 },
-          normal: { stage1: 0, stage2: 0, total: 0 },
-          hard: { stage1: 0, stage2: 0, total: 0 },
+          easy: { stage1: 0, stage2: 0, stage3: 0, total: 0 },
+          normal: { stage1: 0, stage2: 0, stage3: 0, total: 0 },
+          hard: { stage1: 0, stage2: 0, stage3: 0, total: 0 },
         },
-        clearFlags: { stage1: false, stage2: false },
+        clearFlags: { stage1: false, stage2: false, stage3: false },
         settings: { lastDifficulty: "normal", volume: 0.5, gamepadEnabled: true },
       };
     }
@@ -1227,6 +1330,7 @@
 
   const pollenSpriteSheet = new PollenSpriteSheet(POLLEN_ENEMY_ASSET);
   const hinokiSpriteSheet = new PollenSpriteSheet(HINOKI_ENEMY_ASSET);
+  const ragweedSpriteSheet = new PollenSpriteSheet(STAGE3_ENEMY_ASSET);
   const POLLEN_ENEMY_CONFIG = {
     small: { radius: 12, hp: 5, speed: 2.15, fireInterval: 155, score: SCORE_VALUES.enemySmall },
     medium: { radius: 18, hp: 12, speed: 1.3, fireInterval: 132, score: SCORE_VALUES.enemyMedium },
@@ -1237,10 +1341,27 @@
     medium: { radius: 19, hp: 15, speed: 1.42, fireInterval: 118, score: 380 },
     large: { radius: 31, hp: 42, speed: 0.86, fireInterval: 98, score: 1250 },
   };
+  const RAGWEED_ENEMY_CONFIG = {
+    small: { radius: 14, hp: 9, speed: 2.55, fireInterval: 118, score: 180 },
+    medium: { radius: 21, hp: 18, speed: 1.2, fireInterval: 104, score: 460 },
+    large: { radius: 33, hp: 48, speed: 0.76, fireInterval: 88, score: 1450 },
+  };
+
+  const enemyConfigFor = (family) => {
+    if (family === "hinoki") return HINOKI_ENEMY_CONFIG;
+    if (family === "ragweed") return RAGWEED_ENEMY_CONFIG;
+    return POLLEN_ENEMY_CONFIG;
+  };
+
+  const enemySpriteSheetFor = (family) => {
+    if (family === "hinoki") return hinokiSpriteSheet;
+    if (family === "ragweed") return ragweedSpriteSheet;
+    return pollenSpriteSheet;
+  };
 
   class Enemy {
     constructor(x, y, type = "medium", movement = "drift", family = "pollen") {
-      const configSet = family === "hinoki" ? HINOKI_ENEMY_CONFIG : POLLEN_ENEMY_CONFIG;
+      const configSet = enemyConfigFor(family);
       const config = configSet[type] || configSet.medium;
       this.x = x;
       this.y = y;
@@ -1268,6 +1389,19 @@
       } else if (this.movement === "wing") {
         this.x = this.baseX + Math.sin(this.age * 0.038) * 96;
         this.y += this.speed * 0.92;
+      } else if (this.movement === "rushLeft") {
+        this.x -= this.speed * 1.18;
+        this.y += this.speed * 0.58;
+      } else if (this.movement === "rushRight") {
+        this.x += this.speed * 1.18;
+        this.y += this.speed * 0.58;
+      } else if (this.movement === "hover") {
+        this.x = this.baseX + Math.sin(this.age * 0.035) * 34;
+        if (this.y < 170) this.y += this.speed * 0.92;
+        else this.y += 0.16;
+      } else if (this.movement === "spider") {
+        this.x = this.baseX + Math.sin(this.age * 0.026) * 26;
+        this.y += this.speed * 0.68;
       } else {
         this.y += this.speed;
       }
@@ -1277,10 +1411,14 @@
     }
 
     fire(game) {
-      const configSet = this.family === "hinoki" ? HINOKI_ENEMY_CONFIG : POLLEN_ENEMY_CONFIG;
+      const configSet = enemyConfigFor(this.family);
       const config = configSet[this.type];
       const playerHit = game.player.hitPoint;
       const aim = Math.atan2(playerHit.y - this.y, playerHit.x - this.x);
+      if (this.family === "ragweed") {
+        this.fireRagweed(game, config, aim);
+        return;
+      }
       const colors = this.family === "hinoki"
         ? { small: "#9ee06a", medium: "#71c86b", large: "#d5e36a" }
         : { small: "#f4c64e", medium: "#f0bd42", large: "#f2a93c" };
@@ -1305,18 +1443,47 @@
       this.fireCooldown = game.difficulty.scaleFireInterval(config.fireInterval + Math.floor(Math.random() * 30));
     }
 
+    fireRagweed(game, config, aim) {
+      const colors = { small: "#d8e957", medium: "#c5dd5c", large: "#9ab54a" };
+      if (this.type === "small") {
+        const side = game.difficulty.current === "easy" ? 1 : 2;
+        for (let i = -side; i <= side; i += 1) {
+          const angle = aim + i * 0.11;
+          const speed = game.difficulty.scaleSpeed(2.08 + (Math.abs(i) * 0.08));
+          game.spawnEnemyBullet(new Bullet(this.x, this.y, Math.cos(angle) * speed, Math.sin(angle) * speed, 4, "enemy", colors.small, { shape: "needle" }));
+        }
+      } else if (this.type === "medium") {
+        const count = game.difficulty.scaleCount(12);
+        const gap = Math.floor(this.age / 60) % count;
+        for (let i = 0; i < count; i += 1) {
+          if (game.difficulty.current === "easy" && Math.abs(i - gap) <= 1) continue;
+          const angle = (i / count) * TAU + this.age * 0.018;
+          const speed = game.difficulty.scaleSpeed(1.24 + (i % 2) * 0.12);
+          game.spawnEnemyBullet(new Bullet(this.x, this.y, Math.cos(angle) * speed, Math.sin(angle) * speed, 5, "enemy", colors.medium));
+        }
+      } else {
+        const count = game.difficulty.scaleCount(11);
+        for (let i = 0; i < count; i += 1) {
+          const offset = (i - (count - 1) / 2) * 0.14;
+          const speed = game.difficulty.scaleSpeed(1.72 + (i % 3) * 0.1);
+          game.spawnEnemyBullet(new Bullet(this.x, this.y + 8, Math.cos(aim + offset) * speed, Math.sin(aim + offset) * speed, 5, "enemy", colors.large));
+        }
+      }
+      this.fireCooldown = game.difficulty.scaleFireInterval(config.fireInterval + Math.floor(Math.random() * 22));
+    }
+
     draw(ctx) {
       ctx.save();
       ctx.translate(this.x, this.y);
       const bob = Math.sin(this.age * 0.09) * 2;
       ctx.translate(0, bob);
-      const spriteSheet = this.family === "hinoki" ? hinokiSpriteSheet : pollenSpriteSheet;
+      const spriteSheet = enemySpriteSheetFor(this.family);
       if (spriteSheet.draw(ctx, this.type)) {
         ctx.restore();
         return;
       }
-      ctx.fillStyle = "#f3d74f";
-      ctx.strokeStyle = "#fff1a2";
+      ctx.fillStyle = this.family === "ragweed" ? "#a8ba42" : "#f3d74f";
+      ctx.strokeStyle = this.family === "ragweed" ? "#e8f88c" : "#fff1a2";
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(0, 0, this.r, 0, TAU);
@@ -1378,6 +1545,7 @@
       this.failed = false;
       this.lastCountdownSecond = null;
       this.resolved = false;
+      this.ragweedFrenzyCutin = false;
       const difficultySurvivalTime = this.survivalTimes?.[game.difficulty.current]
         ?? game.difficulty.config.survivalTime;
       this.survivalDuration = this.survival
@@ -1589,6 +1757,63 @@
         ));
       }
     },
+
+    ragweedPoisonBloom(boss, game, card) {
+      if (card.age % game.difficulty.scaleFireInterval(62) === 1) {
+        const count = game.difficulty.scaleCount(24);
+        const gap = Math.floor(card.age / 62) % count;
+        for (let i = 0; i < count; i += 1) {
+          if (Math.abs(i - gap) <= 2) continue;
+          const angle = (i / count) * TAU + card.age * 0.014;
+          const speed = game.difficulty.scaleSpeed(0.96 + (i % 3) * 0.12);
+          game.spawnEnemyBullet(new Bullet(boss.x, boss.y, Math.cos(angle) * speed, Math.sin(angle) * speed, 5, "enemy", i % 2 ? "#dce85a" : "#9ec64c"));
+        }
+      }
+      if (card.age % game.difficulty.scaleFireInterval(88) === 1) {
+        const drift = (Math.floor(card.age / 88) % 2 === 0 ? 1 : -1) * 0.45;
+        for (let i = 0; i < 5; i += 1) {
+          const x = 54 + i * 86;
+          game.spawnEnemyBullet(new Bullet(x, -14, drift, game.difficulty.scaleSpeed(1.72 + (i % 2) * 0.12), 4, "enemy", "#c8dc54", { shape: "needle" }));
+        }
+      }
+    },
+
+    ragweedMistSurvival(boss, game, card) {
+      BOSS_PATTERNS.ragweedPoisonBloom(boss, game, card);
+      if (card.age % game.difficulty.scaleFireInterval(76) !== 1) return;
+      const count = game.difficulty.scaleCount(card.frenzy ? 22 : 16);
+      const gap = Math.floor(card.age / 76) % count;
+      for (let i = 0; i < count; i += 1) {
+        if (Math.abs(i - gap) <= 2) continue;
+        const angle = (i / count) * TAU - card.age * 0.012;
+        const speed = game.difficulty.scaleSpeed((card.frenzy ? 1.16 : 0.94) + (i % 2) * 0.16);
+        game.spawnEnemyBullet(new Bullet(boss.x, boss.y + 6, Math.cos(angle) * speed, Math.sin(angle) * speed, 5, "enemy", "rgba(190, 214, 82, 0.76)"));
+      }
+    },
+
+    ragweedWastelandFuneral(boss, game, card) {
+      if (card.age % game.difficulty.scaleFireInterval(card.frenzy ? 38 : 54) === 1) {
+        const count = game.difficulty.scaleCount(card.frenzy ? 20 : 14);
+        for (let i = 0; i < count; i += 1) {
+          const angle = (i / count) * TAU + card.age * (card.frenzy ? 0.036 : 0.022);
+          const speed = game.difficulty.scaleSpeed((card.frenzy ? 1.32 : 1.06) + (i % 3) * 0.13);
+          game.spawnEnemyBullet(new Bullet(boss.x, boss.y, Math.cos(angle) * speed, Math.sin(angle) * speed, 5, "enemy", card.frenzy ? "#eef05e" : "#b7cc4b"));
+        }
+      }
+      if (card.age % game.difficulty.scaleFireInterval(card.frenzy ? 68 : 96) === 1) {
+        const base = Math.atan2(game.player.hitPoint.y - boss.y, game.player.hitPoint.x - boss.x);
+        const spread = game.difficulty.current === "easy" ? 2 : 3;
+        for (let i = -spread; i <= spread; i += 1) {
+          const angle = base + i * 0.18;
+          const speed = game.difficulty.scaleSpeed(card.frenzy ? 2.15 : 1.82);
+          game.spawnEnemyBullet(new Bullet(boss.x, boss.y + 18, Math.cos(angle) * speed, Math.sin(angle) * speed, 4, "enemy", "#d7e362", { shape: "needle" }));
+        }
+      }
+      if (card.frenzy && !card.ragweedFrenzyCutin) {
+        card.ragweedFrenzyCutin = true;
+        game.startBossSpellCutin("大神威「荒野花粉葬」");
+      }
+    },
   };
 
   const BOSS_SPELL_LIBRARY = [
@@ -1598,6 +1823,9 @@
     { name: "春霞神威「視界不良」", pattern: "poorVisibility", status: "future" },
     { name: "神木神威「杉並木封鎖」", pattern: "cedarBlockade", status: "stage1" },
     { name: "大神威「無限飛散」", pattern: "infiniteScatter", status: "stage1" },
+    { name: "神威「秋塵毒花」", pattern: "ragweedPoisonBloom", status: "stage3" },
+    { name: "神威「雑草迷霧」", pattern: "ragweedMistSurvival", status: "stage3" },
+    { name: "大神威「荒野花粉葬」", pattern: "ragweedWastelandFuneral", status: "stage3" },
   ];
 
   class Boss {
@@ -1644,6 +1872,7 @@
             game.state.showMessage("戦闘開始", 90);
             game.audio.playBoss(game.currentStage.bossBgm);
             if (game.currentStageId === "stage2") game.startBossSpellCutin("ヒノキ将軍・檜風開陣");
+            if (game.currentStageId === "stage3") game.startBossSpellCutin("ロード・ラグウィード・秋塵毒花");
             this.beginCurrentCard(game);
           });
         }
@@ -1759,7 +1988,7 @@
         return;
       }
 
-      if (this.definition.asset === HINOKI_BOSS_ASSET) {
+      if (this.definition.asset === HINOKI_BOSS_ASSET || this.definition.asset === LORD_RAGWEED_ASSET) {
         this.drawBossPlaceholder(ctx);
         ctx.restore();
         return;
@@ -1806,8 +2035,14 @@
       ctx.fillStyle = "#f4ffe8";
       ctx.font = "900 15px system-ui, sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText("ヒノキ", 0, -10);
-      ctx.fillText("将軍", 0, 14);
+      if (this.definition.asset === LORD_RAGWEED_ASSET) {
+        ctx.fillText("ロード", 0, -20);
+        ctx.fillText("ラグ", 0, 4);
+        ctx.fillText("ウィード", 0, 28);
+      } else {
+        ctx.fillText("ヒノキ", 0, -10);
+        ctx.fillText("将軍", 0, 14);
+      }
       ctx.restore();
     }
 
@@ -2441,7 +2676,8 @@
       this.stageSelectMenu = new MenuManager([
         { label: "STAGE 1　春の花粉参道", action: "stage1" },
         { label: "STAGE 2　檜風街道", action: "stage2" },
-        { label: "STAGE 3　COMING SOON", action: "stage3", disabled: true },
+        { label: "STAGE 3　秋花粉の廃道", action: "stage3" },
+        { label: "STAGE 4　COMING SOON", action: "stage4", disabled: true },
       ]);
       this.optionsMenu = new MenuManager([
         { label: "BGM VOLUME", action: "bgm" },
@@ -2985,8 +3221,13 @@
           disabled: !this.save.isStageCleared("stage1"),
         },
         {
-          label: this.save.isStageCleared("stage2") ? "STAGE 3　COMING SOON" : "STAGE 3　未解放",
+          label: this.save.isStageCleared("stage2") ? STAGE_DEFINITIONS.stage3.selectLabel : "STAGE 3　未解放",
           action: "stage3",
+          disabled: !this.save.isStageCleared("stage2"),
+        },
+        {
+          label: this.save.isStageCleared("stage3") ? "STAGE 4　COMING SOON" : "STAGE 4　未解放",
+          action: "stage4",
           disabled: true,
         },
       ]);
@@ -2996,7 +3237,7 @@
       const item = this.stageSelectMenu.selected();
       if (!item || item.disabled) return;
       this.audio.playSE("menu_decide");
-      if (item.action === "stage1" || item.action === "stage2") this.beginStageSelect(item.action);
+      if (STAGE_DEFINITIONS[item.action]) this.beginStageSelect(item.action);
     }
 
     moveMenu(menu, delta) {
@@ -3286,7 +3527,7 @@
         return null;
       }
       const startY = this.state.mode === "title"
-        ? (this.titlePanel === "options" ? 365 : this.titlePanel === "stage" ? 395 : 332)
+        ? (this.titlePanel === "options" ? 365 : this.titlePanel === "stage" ? 380 : 332)
         : (this.pauseOptionsOpen ? 365 : 345);
       for (let i = 0; i < menu.items.length; i += 1) {
         const top = startY + i * 48;
@@ -3727,6 +3968,49 @@
       } else if (pattern === "hinokiGuard") {
         spawn(110, -45, "large", "sine");
         spawn(W - 110, -95, "large", "sine");
+      } else if (pattern === "ragweedBeeRush") {
+        const count = this.difficulty.current === "easy" ? 4 : 6;
+        for (let i = 0; i < count; i += 1) {
+          const fromLeft = i % 2 === 0;
+          spawn(fromLeft ? -28 : W + 28, 58 + i * 48, "small", fromLeft ? "rushRight" : "rushLeft");
+        }
+      } else if (pattern === "ragweedEyeCircle") {
+        spawn(W / 2, -42, "medium", "hover");
+        if (this.difficulty.current !== "easy") spawn(W / 2 + 96, -108, "small", "zigzag");
+      } else if (pattern === "ragweedPincer") {
+        spawn(-30, 82, "small", "rushRight");
+        spawn(W + 30, 124, "small", "rushLeft");
+        spawn(110, -72, "medium", "hover");
+        if (this.difficulty.current !== "easy") spawn(W - 110, -108, "medium", "hover");
+      } else if (pattern === "ragweedSpiderFan") {
+        spawn(W / 2, -58, "large", "spider");
+        spawn(82, -122, "small", "rushRight");
+        spawn(W - 82, -156, "small", "rushLeft");
+      } else if (pattern === "ragweedBeeCross") {
+        const count = this.difficulty.current === "hard" ? 8 : 6;
+        for (let i = 0; i < count; i += 1) {
+          const fromLeft = i % 2 === 0;
+          spawn(fromLeft ? -24 : W + 24, 46 + (i % 4) * 62, "small", fromLeft ? "rushRight" : "rushLeft");
+        }
+      } else if (pattern === "ragweedMixedAmbush") {
+        spawn(W / 2, -44, "medium", "hover");
+        spawn(70, -92, "large", "spider");
+        spawn(W - 70, -124, "small", "rushLeft");
+        if (this.difficulty.current !== "easy") spawn(W - 100, -178, "medium", "hover");
+      } else if (pattern === "ragweedEyePair") {
+        spawn(132, -46, "medium", "hover");
+        spawn(W - 132, -94, "medium", "hover");
+        if (this.difficulty.current === "hard") spawn(W / 2, -142, "small", "zigzag");
+      } else if (pattern === "ragweedSpiderLine") {
+        const count = this.difficulty.current === "easy" ? 2 : 3;
+        for (let i = 0; i < count; i += 1) spawn(90 + i * 135, -52 - i * 58, "large", "spider");
+      } else if (pattern === "ragweedAutumnStorm") {
+        spawn(W / 2, -56, "large", "spider");
+        for (let i = 0; i < 5; i += 1) spawn(55 + i * 85, -100 - (i % 2) * 52, i % 2 ? "medium" : "small", i % 2 ? "hover" : "zigzag");
+      } else if (pattern === "ragweedGate") {
+        spawn(94, -48, "large", "spider");
+        spawn(W - 94, -92, "large", "spider");
+        spawn(W / 2, -146, "medium", "hover");
       }
     }
 
@@ -4456,18 +4740,18 @@
         ctx.fillStyle = "#f8ffe9";
         ctx.font = "900 28px system-ui, sans-serif";
         ctx.fillText("STAGE SELECT", W / 2, 360);
-        this.drawMenu(this.stageSelectMenu, 395);
+        this.drawMenu(this.stageSelectMenu, 380);
         ctx.fillStyle = "#fff0a8";
         ctx.font = "700 14px system-ui, sans-serif";
         const selectedStage = this.stageSelectMenu.selected()?.action;
         const selectedScore = selectedStage && STAGE_DEFINITIONS[selectedStage]
           ? this.save.getHighScore(this.difficulty.current, selectedStage)
           : 0;
-        ctx.fillText(`SELECTED HIGH SCORE  ${selectedScore}`, W / 2, 560);
+        ctx.fillText(`SELECTED HIGH SCORE  ${selectedScore}`, W / 2, 600);
         ctx.fillStyle = "rgba(239, 255, 237, 0.75)";
         ctx.font = "13px system-ui, sans-serif";
-        ctx.fillText("Stage3は将来のアップデートで実装予定", W / 2, 590);
-        ctx.fillText("Esc / B で戻る", W / 2, 614);
+        ctx.fillText("Stage4は将来のアップデートで実装予定", W / 2, 628);
+        ctx.fillText("Esc / B で戻る", W / 2, 652);
         return;
       }
       this.drawMenu(this.titleMenu, 332, (item) => {
@@ -4482,10 +4766,10 @@
         ctx.fillText("マウス: 移動  左ボタンショット  右クリック履技", W / 2, 680);
         ctx.fillText("Xbox: 左スティック/D-pad移動  Aショット/決定  X履技  LB/RB低速", W / 2, 704);
       } else if (this.titlePanel === "score") {
-        ctx.fillText(`EASY　S1 ${this.save.getHighScore("easy", "stage1")}　S2 ${this.save.getHighScore("easy", "stage2")}`, W / 2, 632);
-        ctx.fillText(`NORMAL　S1 ${this.save.getHighScore("normal", "stage1")}　S2 ${this.save.getHighScore("normal", "stage2")}`, W / 2, 656);
-        ctx.fillText(`HARD　S1 ${this.save.getHighScore("hard", "stage1")}　S2 ${this.save.getHighScore("hard", "stage2")}`, W / 2, 680);
-        ctx.fillText(`TOTAL ${this.save.getHighScore(this.difficulty.current, "total")}　S1 ${this.save.isStageCleared("stage1") ? "CLEAR" : "---"}　S2 ${this.save.isStageCleared("stage2") ? "CLEAR" : "---"}`, W / 2, 712);
+        ctx.fillText(`EASY　S1 ${this.save.getHighScore("easy", "stage1")}　S2 ${this.save.getHighScore("easy", "stage2")}　S3 ${this.save.getHighScore("easy", "stage3")}`, W / 2, 632);
+        ctx.fillText(`NORMAL　S1 ${this.save.getHighScore("normal", "stage1")}　S2 ${this.save.getHighScore("normal", "stage2")}　S3 ${this.save.getHighScore("normal", "stage3")}`, W / 2, 656);
+        ctx.fillText(`HARD　S1 ${this.save.getHighScore("hard", "stage1")}　S2 ${this.save.getHighScore("hard", "stage2")}　S3 ${this.save.getHighScore("hard", "stage3")}`, W / 2, 680);
+        ctx.fillText(`TOTAL ${this.save.getHighScore(this.difficulty.current, "total")}　S1 ${this.save.isStageCleared("stage1") ? "CLEAR" : "---"}　S2 ${this.save.isStageCleared("stage2") ? "CLEAR" : "---"}　S3 ${this.save.isStageCleared("stage3") ? "CLEAR" : "---"}`, W / 2, 712);
       } else {
         ctx.fillStyle = "rgba(0, 0, 0, 0.42)";
         ctx.fillRect(86, 626, W - 172, 38);
