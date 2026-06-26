@@ -129,10 +129,20 @@ const sandbox = {
   clearTimeout,
   document: {
     body: createElement("body"),
+    documentElement: createElement("html"),
+    fullscreenElement: null,
+    exitFullscreen() {
+      this.fullscreenElement = null;
+      return Promise.resolve();
+    },
     getElementById(id) { return elements.get(id); },
     querySelector(selector) { return selector === ".update-panel" ? updatePanel : null; },
     createElement() { return createElement(); },
   },
+};
+sandbox.document.documentElement.requestFullscreen = () => {
+  sandbox.document.fullscreenElement = sandbox.document.documentElement;
+  return Promise.resolve();
 };
 sandbox.window = {
   addEventListener() {},
@@ -158,9 +168,14 @@ game.audio.setMute(false);
 assert.equal(game.audio.currentBGM.volume, 0.55, "unmute should restore the saved BGM volume");
 assert.equal(
   Array.from(game.titleMenu.items, (item) => item.label).join("|"),
-  "START GAME|STAGE SELECT|OPTIONS|HOW TO PLAY|HIGH SCORE",
-  "title menu should expose Stage Select and the existing entries"
+  "START GAME|STAGE SELECT|OPTIONS|FULLSCREEN|HOW TO PLAY|HIGH SCORE",
+  "title menu should expose Stage Select, Fullscreen and the existing entries"
 );
+assert.equal(game.fullscreen.supported, true, "fullscreen manager should detect the browser API");
+assert.equal(game.fullscreen.label(), "FULLSCREEN OFF", "fullscreen menu label should expose the current state");
+sandbox.document.fullscreenElement = sandbox.document.documentElement;
+assert.equal(game.fullscreen.label(), "FULLSCREEN ON", "fullscreen menu label should update when active");
+sandbox.document.fullscreenElement = null;
 game.openOptions();
 assert.equal(game.titlePanel, "options");
 assert.equal(game.optionsMenu.items.length, 4, "options should contain BGM, SE, mute and back");
@@ -366,13 +381,50 @@ const maxItem = game.powerItems[0];
 const pointItem = game.pointItems[0];
 pointItem.x = 60;
 pointItem.y = 420;
+game.power.value = game.power.max - 1;
+game.state.message = "";
+game.collectPowerItem({
+  x: game.player.x,
+  y: game.player.y,
+  r: 10,
+  amount: 1,
+  active: true,
+  collected: false,
+});
+assert.equal(game.power.value, game.power.max, "power item should clamp at maximum");
+assert.equal(game.state.message, "POWER MAX！", "POWER MAX should appear when power reaches maximum");
+game.state.message = "";
+const extraMaxScoreBefore = game.score.value;
+game.collectPowerItem({
+  x: game.player.x,
+  y: game.player.y,
+  r: 10,
+  amount: 1,
+  active: true,
+  collected: false,
+});
+assert.equal(game.state.message, "", "extra power items at maximum must not repeat the POWER MAX message");
+assert.equal(game.score.value, extraMaxScoreBefore + 500, "extra power at maximum should still convert to score");
+game.power.loseOnMiss();
+game.state.message = "";
+game.collectPowerItem({
+  x: game.player.x,
+  y: game.player.y,
+  r: 10,
+  amount: 5,
+  active: true,
+  collected: false,
+});
+assert.equal(game.state.message, "POWER MAX！", "POWER MAX may appear again after power drops and recovers");
 game.powerItems = [maxItem];
 game.power.value = game.power.max;
 const maxScoreBefore = game.score.value;
+game.state.message = "";
 game.resolveCollisions();
 assert.equal(game.power.value, game.power.max, "power should never exceed maximum");
 assert.ok(game.score.value > maxScoreBefore, "power item at maximum should convert to score");
 assert.equal(game.powerItems.length, 0, "max-power item should also be removed immediately");
+assert.equal(game.state.message, "", "maximum-power score conversion should not show POWER MAX again");
 
 pointItem.x = game.player.x;
 pointItem.y = game.player.y;
@@ -402,6 +454,9 @@ assert.ok(game.boss, "boss should spawn at the end of the stage");
 game.boss.entered = true;
 assert.equal(game.boss.spellCards.length, 3, "boss battle should have three phases");
 game.boss.beginCurrentCard(game);
+assert.equal(game.currentStage.bossLabel, "一面ボス", "Stage1 boss banner should identify the first stage");
+assert.equal(game.boss.currentCard.maxHp, 285, "NORMAL Stage1 phase one HP should use the tuned base and multiplier");
+assert.equal(game.boss.currentCard.duration, 1200, "Stage1 phase one should allow twenty seconds");
 const finishBossCardTransition = () => {
   game.pendingBossCardStart = 0;
   game.boss.transitioning = false;
@@ -416,6 +471,7 @@ assert.equal(game.bossSpellCutinName, "大神威「無限飛散」", "boss cut-i
 assert.ok(game.getCutinSlideX(74, 74, -1) < 0, "Suginomikoto cut-in should start outside the left edge");
 game.draw();
 assert.equal(game.boss.currentCard.survival, true, "second divine attack should be a survival phase");
+assert.equal(game.boss.currentCard.survivalDuration, 35, "NORMAL Stage1 survival should be shortened to 35 seconds");
 const survivalHp = game.boss.currentCard.hp;
 game.boss.takeDamage(game, 999);
 assert.equal(game.boss.currentCard.hp, survivalHp, "survival boss should be invincible");
@@ -448,6 +504,7 @@ game.titlePanel = "stage";
 assert.equal(game.stageSelectMenu.items[1].disabled, false, "clearing Stage1 should unlock Stage2");
 game.start(false, false, "stage2");
 assert.equal(game.currentStageId, "stage2", "Stage2 should become the active stage");
+assert.equal(game.currentStage.bossLabel, "二面ボス", "Stage2 boss banner should identify the second stage");
 assert.equal(game.dialogue.active, false, "Stage2 should not pause for a stage-start dialogue");
 assert.equal(game.state.stageName, "二面　檜風街道", "Stage2 title should be applied");
 assert.equal(game.audio.currentBGMName, "stage2", "Stage2 should use its road theme slot");
@@ -469,6 +526,7 @@ game.boss.currentCard.hp = 0;
 game.boss.nextCard(game);
 finishBossCardTransition();
 assert.equal(game.boss.currentCard.survival, true, "Stage2 second phase should be survival");
+assert.equal(game.boss.currentCard.survivalDuration, 60, "Stage2 NORMAL survival duration should remain unchanged");
 const stage2SurvivalHp = game.boss.currentCard.hp;
 game.boss.takeDamage(game, 9999);
 assert.equal(game.boss.currentCard.hp, stage2SurvivalHp, "Stage2 survival should ignore all damage");

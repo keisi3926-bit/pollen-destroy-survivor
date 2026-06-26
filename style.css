@@ -211,6 +211,26 @@ body {
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.42);
 }
 
+html:fullscreen,
+html:fullscreen body {
+  background: #000;
+}
+
+html:fullscreen .game-shell {
+  background: #000;
+  padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right))
+    max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+}
+
+html:fullscreen #gameCanvas {
+  width: min(calc(100vw - 24px), calc((100vh - 24px) * 0.5625));
+  height: min(calc(100vh - 24px), calc((100vw - 24px) * 1.7778));
+  max-width: none;
+  max-height: none;
+  border-color: rgba(255, 255, 255, 0.24);
+  box-shadow: none;
+}
+
 @media (max-width: 720px) {
   .update-panel {
     width: min(270px, calc(100vw - 96px));

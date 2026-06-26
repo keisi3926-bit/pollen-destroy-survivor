@@ -99,7 +99,7 @@
     scorePerGraze: 50,
     milestones: [100, 500, 1000],
   };
-  const APP_VERSION = "0.34.0";
+  const APP_VERSION = "0.36.0";
   const STAGE_ORDER = ["stage1", "stage2"];
   const ARCADE_CLEAR_WAIT_FRAMES = 150;
   const FIXED_STEP_SECONDS = 1 / 60;
@@ -215,6 +215,7 @@
       id: "stage1",
       title: "一面 春の花粉参道",
       selectLabel: "STAGE 1　春の花粉参道",
+      bossLabel: "一面ボス",
       background: BACKGROUND_STAGE1,
       bgm: "stage1",
       bossBgm: "boss1",
@@ -236,14 +237,14 @@
         cutinLabel: "SUGINOMIKOTO",
         imageCrop: { sx: 0, sy: 0, sw: 1024, sh: 1536 },
         spellCards: [
-          { name: "Phase 1 通常弾幕", duration: 720, hp: 360, pattern: "normalSpread", type: "normal" },
+          { name: "Phase 1 通常弾幕", duration: 1200, hp: 300, pattern: "normalSpread", type: "normal" },
           {
             name: "大神威「無限飛散」",
             duration: 1800,
             hp: 1,
             pattern: "infiniteScatter",
             survival: true,
-            survivalTimeMultiplier: 1,
+            survivalTimes: { easy: 40, normal: 35, hard: 30 },
           },
           { name: "終神威「杉並木封鎖」", duration: 2400, hp: 620, pattern: "infiniteScatter" },
         ],
@@ -253,6 +254,7 @@
       id: "stage2",
       title: "二面　檜風街道",
       selectLabel: "STAGE 2　檜風街道",
+      bossLabel: "二面ボス",
       background: BACKGROUND_STAGE2,
       bgm: "stage2",
       bossBgm: "boss2",
@@ -757,6 +759,37 @@
 
     selected() {
       return this.items[this.index];
+    }
+  }
+
+  class FullscreenManager {
+    constructor(target = document.documentElement) {
+      this.target = target;
+      this.supported = Boolean(
+        target?.requestFullscreen
+        && document.exitFullscreen
+        && "fullscreenElement" in document
+      );
+    }
+
+    isActive() {
+      return Boolean(document.fullscreenElement);
+    }
+
+    label() {
+      return `FULLSCREEN ${this.isActive() ? "ON" : "OFF"}`;
+    }
+
+    async toggle() {
+      if (!this.supported) return false;
+      try {
+        if (this.isActive()) await document.exitFullscreen();
+        else await this.target.requestFullscreen();
+        return true;
+      } catch (error) {
+        console.warn("Fullscreen toggle failed", error);
+        return false;
+      }
     }
   }
 
@@ -1310,6 +1343,7 @@
       type = "spell",
       survival = false,
       survivalTimeMultiplier = 1,
+      survivalTimes = null,
       onStart = null,
       onUpdate = null,
       onEnd = null,
@@ -1322,6 +1356,7 @@
       this.type = type;
       this.survival = survival;
       this.survivalTimeMultiplier = survivalTimeMultiplier;
+      this.survivalTimes = survivalTimes;
       this.survivalDuration = 0;
       this.survivalTimer = 0;
       this.frenzy = false;
@@ -1343,8 +1378,10 @@
       this.failed = false;
       this.lastCountdownSecond = null;
       this.resolved = false;
+      const difficultySurvivalTime = this.survivalTimes?.[game.difficulty.current]
+        ?? game.difficulty.config.survivalTime;
       this.survivalDuration = this.survival
-        ? game.difficulty.config.survivalTime * this.survivalTimeMultiplier
+        ? difficultySurvivalTime * this.survivalTimeMultiplier
         : 0;
       this.survivalTimer = this.survivalDuration;
       if (this.onStart) this.onStart(boss, game, this);
@@ -1587,6 +1624,9 @@
       this.image.onload = () => {
         this.imageLoaded = true;
       };
+      this.image.onerror = () => {
+        this.imageLoaded = false;
+      };
       this.image.src = `${definition.asset}?v=${APP_VERSION}`;
     }
 
@@ -1719,6 +1759,12 @@
         return;
       }
 
+      if (this.definition.asset === HINOKI_BOSS_ASSET) {
+        this.drawBossPlaceholder(ctx);
+        ctx.restore();
+        return;
+      }
+
       // 杉の神らしいシルエットを、三角の樹冠と面で表現する。
       ctx.fillStyle = "#2d8a48";
       ctx.strokeStyle = "#b9ffd0";
@@ -1745,6 +1791,23 @@
       ctx.moveTo(-12, 12);
       ctx.quadraticCurveTo(0, 21, 13, 12);
       ctx.stroke();
+      ctx.restore();
+    }
+
+    drawBossPlaceholder(ctx) {
+      ctx.save();
+      ctx.fillStyle = "rgba(15, 46, 29, 0.86)";
+      ctx.strokeStyle = "rgba(221, 255, 205, 0.92)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.roundRect(-46, -72, 92, 144, 12);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#f4ffe8";
+      ctx.font = "900 15px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("ヒノキ", 0, -10);
+      ctx.fillText("将軍", 0, 14);
       ctx.restore();
     }
 
@@ -2353,6 +2416,9 @@
       this.difficulty.set(this.save.data.settings?.lastDifficulty || "normal");
       this.background = new BackgroundManager(this.currentStage.background);
       this.audio = new AudioManager();
+      this.fullscreen = new FullscreenManager(document.documentElement);
+      this.bossImageCache = new Map();
+      Object.values(STAGE_DEFINITIONS).forEach((stage) => this.preloadBossImage(stage.boss.asset));
       this.slipperNovaCutin = new Image();
       this.slipperNovaCutinLoaded = false;
       this.slipperNovaCutin.onload = () => {
@@ -2464,11 +2530,19 @@
       return STAGE_DEFINITIONS[this.currentStageId] || STAGE_DEFINITIONS.stage1;
     }
 
+    preloadBossImage(src) {
+      if (!src || this.bossImageCache.has(src)) return;
+      const image = new Image();
+      image.src = `${src}?v=${APP_VERSION}`;
+      this.bossImageCache.set(src, image);
+    }
+
     configureStage(stageId) {
       this.currentStageId = STAGE_DEFINITIONS[stageId] ? stageId : "stage1";
       this.state.stageName = this.currentStage.title;
       DIALOGUE_CONTEXT.bossName = this.currentStage.boss.name;
       this.background.setSource(this.currentStage.background);
+      this.preloadBossImage(this.currentStage.boss.asset);
       this.suginomikotoCutinLoaded = false;
       this.suginomikotoCutin.src = `${this.currentStage.boss.cutin}?v=${APP_VERSION}`;
     }
@@ -2672,7 +2746,11 @@
         if (isBrandSplashActive()) return;
         this.audio.unlock();
         if (this.state.mode === "title") this.ensureTitleBGM();
-        if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", " ", "Shift", "x", "X", "Escape", "Enter"].includes(e.key)) e.preventDefault();
+        if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", " ", "Shift", "x", "X", "f", "F", "Escape", "Enter"].includes(e.key)) e.preventDefault();
+        if ((e.key === "f" || e.key === "F") && !e.repeat) {
+          this.toggleFullscreen();
+          return;
+        }
         if (e.key === "F3") {
           if (!e.repeat) this.debugVisible = !this.debugVisible;
           return;
@@ -2876,6 +2954,7 @@
         this.stageSelectMenu.index = 0;
       }
       if (label === "OPTIONS") this.openOptions();
+      if (selected.action === "fullscreen") this.toggleFullscreen();
       if (label === "HOW TO PLAY") this.titlePanel = this.titlePanel === "how" ? "main" : "how";
       if (label === "HIGH SCORE") this.titlePanel = this.titlePanel === "score" ? "main" : "score";
     }
@@ -2894,6 +2973,7 @@
         { label: "START GAME" },
         { label: "STAGE SELECT", disabled: !this.save.isStageCleared("stage1") },
         { label: "OPTIONS" },
+        { label: "FULLSCREEN", action: "fullscreen", disabled: !this.fullscreen?.supported },
         { label: "HOW TO PLAY" },
         { label: "HIGH SCORE" },
       ]);
@@ -2922,6 +3002,11 @@
     moveMenu(menu, delta) {
       menu.move(delta);
       this.audio.playSE("menu_move");
+    }
+
+    toggleFullscreen() {
+      if (!this.fullscreen?.supported) return;
+      this.fullscreen.toggle();
     }
 
     openOptions() {
@@ -2980,6 +3065,7 @@
         { label: "RETRY", action: "restart", confirm: "ステージを最初からやり直しますか？" },
         { label: "TITLE", action: "title", confirm: "タイトルへ戻りますか？" },
         { label: "OPTIONS", action: "options" },
+        { label: "FULLSCREEN", action: "fullscreen", disabled: !this.fullscreen?.supported },
       ]);
     }
 
@@ -3046,6 +3132,7 @@
         this.pauseOptionsOpen = true;
         this.optionsMenu.index = 0;
       }
+      if (action === "fullscreen") this.toggleFullscreen();
     }
 
     openGameOverMenu() {
@@ -3132,7 +3219,7 @@
       }
       if (this.state.mode !== "title" && this.state.mode !== "paused" && this.state.mode !== "gameover") return false;
       const pos = this.canvasPoint(e);
-      if (this.state.mode === "title" && this.titlePanel === "main" && pos.y >= 594 && pos.y <= 632) {
+      if (this.state.mode === "title" && this.titlePanel === "main" && pos.y >= 626 && pos.y <= 664) {
         this.changeDifficulty(pos.x < W / 2 ? -1 : 1);
         this.audio.playSE("menu_move");
         return true;
@@ -3199,7 +3286,7 @@
         return null;
       }
       const startY = this.state.mode === "title"
-        ? (this.titlePanel === "options" ? 365 : this.titlePanel === "stage" ? 395 : 350)
+        ? (this.titlePanel === "options" ? 365 : this.titlePanel === "stage" ? 395 : 332)
         : (this.pauseOptionsOpen ? 365 : 345);
       for (let i = 0; i < menu.items.length; i += 1) {
         const top = startY + i * 48;
@@ -3726,14 +3813,14 @@
       if (!item.active || item.collected) return false;
       item.collected = true;
       item.active = false;
+      const previousPower = this.power.value;
       const oldStage = this.power.stage;
       const gained = this.power.add(item.amount);
       const stageChanged = this.power.stage > oldStage;
-      const reachedMax = this.power.stage === 4 && oldStage < 4;
+      const reachedMax = previousPower < this.power.max && this.power.value >= this.power.max;
 
       if (gained === 0) {
         addScore(this, item.amount >= POWER_CONFIG.largePValue ? POWER_CONFIG.maxLargeBonus : POWER_CONFIG.maxSmallBonus);
-        this.state.showMessage("POWER MAX BONUS", 75);
       } else {
         this.syncFollowers();
         this.state.showMessage(reachedMax ? "POWER MAX！" : stageChanged ? `POWER UP！ 随履 ${this.power.stage}足` : `POWER UP +${gained}`, 90);
@@ -4320,7 +4407,7 @@
         ctx.fillRect(50, 150, W - 100, 74);
         ctx.fillStyle = "#d8ffd2";
         ctx.font = "700 16px system-ui, sans-serif";
-        ctx.fillText("一面ボス", W / 2, 178);
+        ctx.fillText(this.currentStage.bossLabel, W / 2, 178);
         ctx.font = "800 29px system-ui, sans-serif";
         ctx.fillText(this.boss.name, W / 2, 210);
       }
@@ -4383,33 +4470,34 @@
         ctx.fillText("Esc / B で戻る", W / 2, 614);
         return;
       }
-      this.drawMenu(this.titleMenu, 350, (item) => {
+      this.drawMenu(this.titleMenu, 332, (item) => {
+        if (item.action === "fullscreen") return this.fullscreen.label();
         return item.label;
       });
       ctx.fillStyle = "rgba(239, 255, 237, 0.82)";
       ctx.font = "13px system-ui, sans-serif";
       if (this.titlePanel === "how") {
-        ctx.fillText("移動: 矢印/WASD/ドラッグ  低速: Shift/低速ボタン", W / 2, 610);
-        ctx.fillText("ショット: Z/Space  履技: X/履技ボタン  ポーズ: Esc/P/MENU", W / 2, 634);
-        ctx.fillText("マウス: 移動  左ボタンショット  右クリック履技", W / 2, 658);
-        ctx.fillText("Xbox: 左スティック/D-pad移動  Aショット/決定  X履技  LB/RB低速", W / 2, 682);
+        ctx.fillText("移動: 矢印/WASD/ドラッグ  低速: Shift/低速ボタン", W / 2, 632);
+        ctx.fillText("ショット: Z/Space  履技: X/履技ボタン  ポーズ: Esc/P/MENU", W / 2, 656);
+        ctx.fillText("マウス: 移動  左ボタンショット  右クリック履技", W / 2, 680);
+        ctx.fillText("Xbox: 左スティック/D-pad移動  Aショット/決定  X履技  LB/RB低速", W / 2, 704);
       } else if (this.titlePanel === "score") {
-        ctx.fillText(`EASY　S1 ${this.save.getHighScore("easy", "stage1")}　S2 ${this.save.getHighScore("easy", "stage2")}`, W / 2, 600);
-        ctx.fillText(`NORMAL　S1 ${this.save.getHighScore("normal", "stage1")}　S2 ${this.save.getHighScore("normal", "stage2")}`, W / 2, 624);
-        ctx.fillText(`HARD　S1 ${this.save.getHighScore("hard", "stage1")}　S2 ${this.save.getHighScore("hard", "stage2")}`, W / 2, 648);
-        ctx.fillText(`TOTAL ${this.save.getHighScore(this.difficulty.current, "total")}　S1 ${this.save.isStageCleared("stage1") ? "CLEAR" : "---"}　S2 ${this.save.isStageCleared("stage2") ? "CLEAR" : "---"}`, W / 2, 680);
+        ctx.fillText(`EASY　S1 ${this.save.getHighScore("easy", "stage1")}　S2 ${this.save.getHighScore("easy", "stage2")}`, W / 2, 632);
+        ctx.fillText(`NORMAL　S1 ${this.save.getHighScore("normal", "stage1")}　S2 ${this.save.getHighScore("normal", "stage2")}`, W / 2, 656);
+        ctx.fillText(`HARD　S1 ${this.save.getHighScore("hard", "stage1")}　S2 ${this.save.getHighScore("hard", "stage2")}`, W / 2, 680);
+        ctx.fillText(`TOTAL ${this.save.getHighScore(this.difficulty.current, "total")}　S1 ${this.save.isStageCleared("stage1") ? "CLEAR" : "---"}　S2 ${this.save.isStageCleared("stage2") ? "CLEAR" : "---"}`, W / 2, 712);
       } else {
         ctx.fillStyle = "rgba(0, 0, 0, 0.42)";
-        ctx.fillRect(86, 594, W - 172, 38);
+        ctx.fillRect(86, 626, W - 172, 38);
         ctx.strokeStyle = "rgba(255, 240, 168, 0.58)";
-        ctx.strokeRect(86, 594, W - 172, 38);
+        ctx.strokeRect(86, 626, W - 172, 38);
         ctx.fillStyle = "#fff0a8";
         ctx.font = "800 15px system-ui, sans-serif";
-        ctx.fillText(`DIFFICULTY  < ${this.difficulty.label} >`, W / 2, 619);
+        ctx.fillText(`DIFFICULTY  < ${this.difficulty.label} >`, W / 2, 651);
         ctx.fillStyle = "rgba(239, 255, 237, 0.82)";
         ctx.font = "13px system-ui, sans-serif";
-        ctx.fillText(`HIGH SCORE  ${this.save.getHighScore(this.difficulty.current, "stage1")}`, W / 2, 654);
-        ctx.fillText("上下で選択、START選択中の左右で難易度変更", W / 2, 680);
+        ctx.fillText(`HIGH SCORE  ${this.save.getHighScore(this.difficulty.current, "stage1")}`, W / 2, 690);
+        ctx.fillText("上下で選択、START選択中の左右で難易度変更", W / 2, 716);
       }
     }
 
@@ -4463,7 +4551,10 @@
         this.drawOptions();
         return;
       }
-      this.drawMenu(this.pauseMenu, 345);
+      this.drawMenu(this.pauseMenu, 345, (item) => {
+        if (item.action === "fullscreen") return this.fullscreen.label();
+        return item.label;
+      });
       this.drawConfirm(this.pauseMenu);
     }
 
