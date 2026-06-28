@@ -1,4 +1,4 @@
-const CACHE_VERSION = "pollen-destroy-survivor-v0.37.8";
+const CACHE_VERSION = "pollen-destroy-survivor-v0.38.0";
 const APP_SHELL = [
   "./",
   "index.html",
@@ -15,12 +15,20 @@ const APP_SHELL = [
   "assets/backgrounds/stage2_hinoki_road.jpg",
   "assets/backgrounds/stage3_autumn_pollen_road.png",
   "assets/backgrounds/site_backdrop_pollen_lords.png",
+  "assets/stage4/background.png",
+  "assets/stage4/shirakaba-priest.png",
+  "assets/stage4/shirakaba-cut-in.png",
+  "assets/stage4/enemy-small.png",
+  "assets/stage4/enemy-medium.png",
+  "assets/stage4/enemy-large.png",
   "assets/audio/stage1_spring_pollen_path.mp3",
   "assets/audio/boss_suginomikoto.mp3",
   "assets/audio/stage2_theme.mp3",
   "assets/audio/boss2_theme.mp3",
   "assets/audio/bgm/stage3_theme.mp3",
   "assets/audio/bgm/boss3_theme.mp3",
+  "assets/audio/stage4.mp3",
+  "assets/audio/shirakaba-boss.mp3",
   "assets/characters/player.png",
   "assets/characters/suginomikoto.png",
   "assets/characters/hinoki_shogun.png",

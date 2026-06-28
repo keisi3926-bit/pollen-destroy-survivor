@@ -183,6 +183,28 @@ python -m http.server 8000
 
 その後、ブラウザで `http://localhost:8000/` を開きます。
 
+## Stage4 development shell
+
+Stage4 is registered as `stage4` with the title `第四面 白銀樹海・凍花聖堂`.
+
+- Background: `assets/stage4/background.png`
+- Boss portrait: `assets/stage4/shirakaba-priest.png`
+- Boss cut-in: `assets/stage4/shirakaba-cut-in.png`
+- Stage BGM: `assets/audio/stage4.mp3`
+- Boss BGM: `assets/audio/shirakaba-boss.mp3`
+- Enemy images: `assets/stage4/enemy-small.png`, `enemy-medium.png`, `enemy-large.png`
+
+Missing Stage4 images or audio automatically fall back to Canvas placeholders or silent playback. Direct development entry points:
+
+```text
+?debug=1&stage=4
+?debug=1&stage=4&phase=1
+?debug=1&stage=4&phase=2
+?debug=1&stage=4&phase=3
+```
+
+Stage4 wave timings and boss parameters are defined in `STAGE4_WAVES` and `STAGE_DEFINITIONS.stage4` in `game.js`.
+
 ## Stage2 BGM
 
 Stage2道中曲には「檜風疾走 - general of the cypress forest」、ボス曲には「ヒノキ将軍見参！」を使用しています。

@@ -29,6 +29,16 @@
   const BACKGROUND_STAGE1 = "assets/backgrounds/stage1_pollen_sando.png";
   const BACKGROUND_STAGE2 = "assets/backgrounds/stage2_hinoki_road.jpg";
   const BACKGROUND_STAGE3 = "assets/backgrounds/stage3_autumn_pollen_road.png";
+  const STAGE4_ASSETS = {
+    background: "assets/stage4/background.png",
+    enemySmall: "assets/stage4/enemy-small.png",
+    enemyMedium: "assets/stage4/enemy-medium.png",
+    enemyLarge: "assets/stage4/enemy-large.png",
+    boss: "assets/stage4/shirakaba-priest.png",
+    cutin: "assets/stage4/shirakaba-cut-in.png",
+    stageBgm: "assets/audio/stage4.mp3",
+    bossBgm: "assets/audio/shirakaba-boss.mp3",
+  };
   const BGM_STAGE1 = "assets/audio/stage1_spring_pollen_path.mp3";
   const BGM_BOSS1 = "assets/audio/boss_suginomikoto.mp3";
   const BGM_STAGE2 = "assets/audio/stage2_theme.mp3";
@@ -43,6 +53,8 @@
     boss2: BGM_BOSS2,
     stage3: BGM_STAGE3,
     boss3: BGM_BOSS3,
+    stage4: STAGE4_ASSETS.stageBgm,
+    boss4: STAGE4_ASSETS.bossBgm,
   };
   const SE_NAMES = [
     "item_p_small",
@@ -107,8 +119,8 @@
     scorePerGraze: 50,
     milestones: [100, 500, 1000],
   };
-  const APP_VERSION = "0.37.8";
-  const STAGE_ORDER = ["stage1", "stage2", "stage3"];
+  const APP_VERSION = "0.38.0";
+  const STAGE_ORDER = ["stage1", "stage2", "stage3", "stage4"];
   const ARCADE_CLEAR_WAIT_FRAMES = 150;
   const FIXED_STEP_SECONDS = 1 / 60;
   const BOSS_DAMAGE_MULTIPLIER = 0.68;
@@ -191,6 +203,19 @@
     { time: 2620, pattern: "ragweedMixedAmbush" },
     { time: 2920, pattern: "ragweedAutumnStorm" },
     { time: 3260, pattern: "ragweedGate" },
+  ];
+  const STAGE4_WAVES = [
+    { time: 90, pattern: "birchSmallLeft" },
+    { time: 330, pattern: "birchSmallRight" },
+    { time: 590, pattern: "birchAlternating" },
+    { time: 880, pattern: "birchMediumLeft" },
+    { time: 1180, pattern: "birchMediumRight" },
+    { time: 1480, pattern: "birchFanCross" },
+    { time: 1790, pattern: "birchLargeLeft" },
+    { time: 2110, pattern: "birchLargeRight" },
+    { time: 2430, pattern: "birchPincer" },
+    { time: 2760, pattern: "birchFrozenLane" },
+    { time: 3070, pattern: "birchWhiteout" },
   ];
   const EXTEND_THRESHOLDS = [30000, 80000, 150000];
   const DIFFICULTY_CONFIG = {
@@ -387,6 +412,61 @@
             durationTimes: { easy: 3660, normal: 3360, hard: 2880 },
             hp: 850,
             pattern: "ragweedWastelandFuneral",
+            lifeBars: 3,
+          },
+        ],
+      },
+    },
+    stage4: {
+      id: "stage4",
+      title: "第四面　白銀樹海・凍花聖堂",
+      selectLabel: "STAGE 4　白銀樹海・凍花聖堂",
+      bossLabel: "四面ボス",
+      background: STAGE4_ASSETS.background,
+      backgroundMode: "snowfield",
+      bgm: "stage4",
+      bossBgm: "boss4",
+      waves: STAGE4_WAVES,
+      bossTime: 3420,
+      warning: "吹雪停止――凍花聖堂、顕現",
+      enemyFamily: "birch",
+      introScene: null,
+      bossScene: null,
+      clearScene: null,
+      endingScene: null,
+      clearMessage: "STAGE4 CLEAR",
+      clearSubtitle: "白銀樹海、突破完了",
+      clearFooter: "TO BE CONTINUED",
+      boss: {
+        name: "シラカバ・プリースト",
+        asset: STAGE4_ASSETS.boss,
+        cutin: STAGE4_ASSETS.cutin,
+        cutinLabel: "SHIRAKABA PRIEST",
+        placeholder: "birchPriest",
+        imageCrop: null,
+        spellCards: [
+          {
+            name: "第一神威「白樺氷晶結界」",
+            duration: 1800,
+            durationTimes: { easy: 2700, normal: 2340, hard: 1800 },
+            hp: 560,
+            pattern: "birchCrystalBarrier",
+            type: "spell",
+          },
+          {
+            name: "第二神威「凍花白嵐」",
+            duration: 1980,
+            durationTimes: { easy: 2700, normal: 2280, hard: 1980 },
+            hp: 640,
+            pattern: "birchWhiteBlizzard",
+            type: "spell",
+          },
+          {
+            name: "第三神威「凍林横葬」",
+            duration: 3000,
+            durationTimes: { easy: 3780, normal: 3420, hard: 3000 },
+            hp: 900,
+            pattern: "birchHorizontalBurial",
             lifeBars: 3,
           },
         ],
@@ -805,11 +885,11 @@
         normal: { highScore: 0, maxCheckpoint: 0, cleared: false, continues: 0 },
         hard: { highScore: 0, maxCheckpoint: 0, cleared: false, continues: 0 },
         highScores: {
-          easy: { stage1: 0, stage2: 0, stage3: 0, total: 0 },
-          normal: { stage1: 0, stage2: 0, stage3: 0, total: 0 },
-          hard: { stage1: 0, stage2: 0, stage3: 0, total: 0 },
+          easy: { stage1: 0, stage2: 0, stage3: 0, stage4: 0, total: 0 },
+          normal: { stage1: 0, stage2: 0, stage3: 0, stage4: 0, total: 0 },
+          hard: { stage1: 0, stage2: 0, stage3: 0, stage4: 0, total: 0 },
         },
-        clearFlags: { stage1: false, stage2: false, stage3: false },
+        clearFlags: { stage1: false, stage2: false, stage3: false, stage4: false },
         settings: { lastDifficulty: "normal", volume: 0.5, gamepadEnabled: true },
       };
     }
@@ -1373,6 +1453,33 @@
   const pollenSpriteSheet = new PollenSpriteSheet(POLLEN_ENEMY_ASSET);
   const hinokiSpriteSheet = new PollenSpriteSheet(HINOKI_ENEMY_ASSET);
   const ragweedSpriteSheet = new PollenSpriteSheet(STAGE3_ENEMY_ASSET);
+  class EnemyAssetSet {
+    constructor(sources) {
+      this.records = new Map();
+      Object.entries(sources).forEach(([type, src]) => {
+        const record = { image: new Image(), loaded: false, failed: false };
+        record.image.onload = () => { record.loaded = true; };
+        record.image.onerror = () => { record.failed = true; };
+        record.image.src = `${src}?v=${APP_VERSION}`;
+        this.records.set(type, record);
+      });
+    }
+
+    draw(ctx, type, size) {
+      const record = this.records.get(type);
+      if (!record?.loaded || record.failed) return false;
+      const scale = Math.min(size / record.image.width, size / record.image.height);
+      const width = record.image.width * scale;
+      const height = record.image.height * scale;
+      ctx.drawImage(record.image, -width / 2, -height / 2, width, height);
+      return true;
+    }
+  }
+  const birchEnemyAssets = new EnemyAssetSet({
+    small: STAGE4_ASSETS.enemySmall,
+    medium: STAGE4_ASSETS.enemyMedium,
+    large: STAGE4_ASSETS.enemyLarge,
+  });
   const POLLEN_ENEMY_CONFIG = {
     small: { radius: 12, hp: 5, speed: 2.15, fireInterval: 155, score: SCORE_VALUES.enemySmall },
     medium: { radius: 18, hp: 12, speed: 1.3, fireInterval: 132, score: SCORE_VALUES.enemyMedium },
@@ -1388,16 +1495,23 @@
     medium: { radius: 21, hp: 18, speed: 1.2, fireInterval: 104, score: 460 },
     large: { radius: 33, hp: 48, speed: 0.76, fireInterval: 88, score: 1450 },
   };
+  const BIRCH_ENEMY_CONFIG = {
+    small: { radius: 13, hp: 10, speed: 2.65, fireInterval: 126, score: 200 },
+    medium: { radius: 21, hp: 22, speed: 1.45, fireInterval: 112, score: 520 },
+    large: { radius: 36, hp: 58, speed: 0.82, fireInterval: 96, score: 1600 },
+  };
 
   const enemyConfigFor = (family) => {
     if (family === "hinoki") return HINOKI_ENEMY_CONFIG;
     if (family === "ragweed") return RAGWEED_ENEMY_CONFIG;
+    if (family === "birch") return BIRCH_ENEMY_CONFIG;
     return POLLEN_ENEMY_CONFIG;
   };
 
   const enemySpriteSheetFor = (family) => {
     if (family === "hinoki") return hinokiSpriteSheet;
     if (family === "ragweed") return ragweedSpriteSheet;
+    if (family === "birch") return null;
     return pollenSpriteSheet;
   };
 
@@ -1416,6 +1530,7 @@
       this.speed = config.speed;
       this.scoreValue = config.score;
       this.baseX = x;
+      this.baseY = y;
       this.fireCooldown = 70 + Math.floor(Math.random() * 45);
       this.destroyed = false;
     }
@@ -1444,6 +1559,16 @@
       } else if (this.movement === "spider") {
         this.x = this.baseX + Math.sin(this.age * 0.026) * 26;
         this.y += this.speed * 0.68;
+      } else if (this.movement === "crossRight") {
+        this.x += this.speed * (this.type === "large" ? 0.82 : 1.5);
+        this.y = this.baseY + Math.sin(this.age * 0.035) * (this.type === "small" ? 26 : 14);
+      } else if (this.movement === "crossLeft") {
+        this.x -= this.speed * (this.type === "large" ? 0.82 : 1.5);
+        this.y = this.baseY + Math.sin(this.age * 0.035) * (this.type === "small" ? 26 : 14);
+      } else if (this.movement === "sideHoverRight" || this.movement === "sideHoverLeft") {
+        const targetX = this.movement === "sideHoverRight" ? W - 105 : 105;
+        this.x += (targetX - this.x) * 0.035;
+        this.y = this.baseY + Math.sin(this.age * 0.028) * 22;
       } else {
         this.y += this.speed;
       }
@@ -1459,6 +1584,10 @@
       const aim = Math.atan2(playerHit.y - this.y, playerHit.x - this.x);
       if (this.family === "ragweed") {
         this.fireRagweed(game, config, aim);
+        return;
+      }
+      if (this.family === "birch") {
+        this.fireBirch(game, config, aim);
         return;
       }
       const colors = this.family === "hinoki"
@@ -1514,13 +1643,46 @@
       this.fireCooldown = game.difficulty.scaleFireInterval(config.fireInterval + Math.floor(Math.random() * 22));
     }
 
+    fireBirch(game, config, aim) {
+      const color = this.type === "large" ? "#c7e8ff" : this.type === "medium" ? "#eefaff" : "#bfe6ff";
+      if (this.type === "small") {
+        const speed = game.difficulty.scaleSpeed(1.9);
+        game.spawnEnemyBullet(new Bullet(this.x, this.y, Math.cos(aim) * speed, Math.sin(aim) * speed, 4, "enemy", color));
+      } else if (this.type === "medium") {
+        const direction = this.x < W / 2 ? 0 : Math.PI;
+        const count = game.difficulty.current === "easy" ? 3 : 5;
+        for (let i = 0; i < count; i += 1) {
+          const angle = direction + (i - (count - 1) / 2) * 0.19;
+          const speed = game.difficulty.scaleSpeed(1.5 + (i % 2) * 0.12);
+          game.spawnEnemyBullet(new Bullet(this.x, this.y, Math.cos(angle) * speed, Math.sin(angle) * speed, 5, "enemy", color, { shape: "needle" }));
+        }
+      } else {
+        const count = game.difficulty.scaleCount(12);
+        for (let i = 0; i < count; i += 1) {
+          const angle = (i / count) * TAU + this.age * 0.006;
+          const speed = game.difficulty.scaleSpeed(1.02 + (i % 2) * 0.14);
+          game.spawnEnemyBullet(new Bullet(this.x, this.y, Math.cos(angle) * speed, Math.sin(angle) * speed, 6, "enemy", color));
+        }
+      }
+      this.fireCooldown = game.difficulty.scaleFireInterval(config.fireInterval + Math.floor(Math.random() * 24));
+    }
+
     draw(ctx) {
       ctx.save();
       ctx.translate(this.x, this.y);
       const bob = Math.sin(this.age * 0.09) * 2;
       ctx.translate(0, bob);
       const spriteSheet = enemySpriteSheetFor(this.family);
-      if (spriteSheet.draw(ctx, this.type)) {
+      if (this.family === "birch" && birchEnemyAssets.draw(ctx, this.type, this.r * 2.8)) {
+        ctx.restore();
+        return;
+      }
+      if (spriteSheet?.draw(ctx, this.type)) {
+        ctx.restore();
+        return;
+      }
+      if (this.family === "birch") {
+        this.drawBirchPlaceholder(ctx);
         ctx.restore();
         return;
       }
@@ -1536,6 +1698,40 @@
       ctx.arc(-5, -6, this.r * 0.28, 0, TAU);
       ctx.fill();
       ctx.restore();
+    }
+
+    drawBirchPlaceholder(ctx) {
+      ctx.fillStyle = this.type === "large" ? "#a9d8ef" : this.type === "medium" ? "#e9f8ff" : "#d1efff";
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2;
+      if (this.type === "medium") {
+        ctx.rotate(Math.PI / 4);
+        ctx.fillRect(-this.r * 0.72, -this.r * 0.72, this.r * 1.44, this.r * 1.44);
+        ctx.strokeRect(-this.r * 0.72, -this.r * 0.72, this.r * 1.44, this.r * 1.44);
+      } else if (this.type === "large") {
+        ctx.beginPath();
+        for (let i = 0; i < 6; i += 1) {
+          const angle = -Math.PI / 2 + i * TAU / 6;
+          const x = Math.cos(angle) * this.r;
+          const y = Math.sin(angle) * this.r;
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      } else {
+        ctx.beginPath();
+        ctx.arc(0, 0, this.r, 0, TAU);
+        ctx.fill();
+        ctx.stroke();
+      }
+      ctx.strokeStyle = "rgba(74, 120, 145, 0.7)";
+      ctx.beginPath();
+      ctx.moveTo(-this.r * 0.65, 0);
+      ctx.lineTo(this.r * 0.65, 0);
+      ctx.moveTo(0, -this.r * 0.65);
+      ctx.lineTo(0, this.r * 0.65);
+      ctx.stroke();
     }
 
     offscreen() {
@@ -1886,6 +2082,65 @@
         game.startBossSpellCutin("大神威「荒野花粉葬」");
       }
     },
+
+    birchCrystalBarrier(boss, game, card) {
+      const interval = game.difficulty.scaleFireInterval(72);
+      if (card.age % interval !== 1) return;
+      const rotation = card.age * 0.012;
+      for (let branch = 0; branch < 6; branch += 1) {
+        const base = rotation + branch * TAU / 6;
+        for (let split = -1; split <= 1; split += 1) {
+          const angle = base + split * 0.085;
+          const speed = game.difficulty.scaleSpeed(0.98 + Math.abs(split) * 0.22);
+          game.spawnEnemyBullet(new Bullet(boss.x, boss.y, Math.cos(angle) * speed, Math.sin(angle) * speed, 5, "enemy", split === 0 ? "#ffffff" : "#a9ddff"));
+        }
+      }
+      if (card.age % (interval * 3) < interval) {
+        const count = game.difficulty.scaleCount(18);
+        for (let i = 0; i < count; i += 1) {
+          const angle = i * TAU / count - rotation * 0.65;
+          const speed = game.difficulty.scaleSpeed(1.28);
+          game.spawnEnemyBullet(new Bullet(boss.x, boss.y, Math.cos(angle) * speed, Math.sin(angle) * speed, 4, "enemy", "#dff5ff", { shape: i % 3 === 0 ? "needle" : "orb" }));
+        }
+      }
+    },
+
+    birchWhiteBlizzard(boss, game, card) {
+      const interval = game.difficulty.scaleFireInterval(11);
+      if (card.age % interval !== 1) return;
+      const cycle = Math.floor(card.age / 240) % 2;
+      const fromLeft = cycle === 0;
+      const y = 110 + ((card.age * 53) % (H - 210));
+      const speed = game.difficulty.scaleSpeed(2.0 + (card.age % 4) * 0.08);
+      const vx = fromLeft ? speed : -speed;
+      const vy = game.difficulty.scaleSpeed(0.45 + Math.sin(card.age * 0.07) * 0.22);
+      game.spawnEnemyBullet(new Bullet(fromLeft ? -16 : W + 16, y, vx, vy, 4, "enemy", "rgba(225,247,255,0.9)", { shape: card.age % 3 === 0 ? "needle" : "orb" }));
+      if (game.difficulty.current === "hard" && card.age % (interval * 3) === 1) {
+        game.spawnEnemyBullet(new Bullet(fromLeft ? W + 16 : -16, H - y, -vx * 0.88, -vy, 4, "enemy", "#b8e4ff"));
+      }
+    },
+
+    birchHorizontalBurial(boss, game, card) {
+      BOSS_PATTERNS.birchWhiteBlizzard(boss, game, card);
+      const interval = game.difficulty.scaleFireInterval(card.frenzy ? 140 : 190);
+      if (card.age % interval !== 1) return;
+      const slots = 5;
+      const safeSlot = Math.floor(card.age / interval) % slots;
+      const slotHeight = 112;
+      for (let slot = 0; slot < slots; slot += 1) {
+        if (slot === safeSlot) continue;
+        const y = 150 + slot * slotHeight;
+        game.iceWalls.push({
+          side: slot % 2 === 0 ? "left" : "right",
+          y,
+          height: 58,
+          maxLength: card.frenzy ? W * 0.72 : W * 0.62,
+          warn: 54,
+          live: 74,
+          age: 0,
+        });
+      }
+    },
   };
 
   const BOSS_SPELL_LIBRARY = [
@@ -1898,6 +2153,9 @@
     { name: "神威「秋塵毒花」", pattern: "ragweedPoisonBloom", status: "stage3" },
     { name: "神威「雑草迷霧」", pattern: "ragweedMistSurvival", status: "stage3" },
     { name: "大神威「荒野花粉葬」", pattern: "ragweedWastelandFuneral", status: "stage3" },
+    { name: "第一神威「白樺氷晶結界」", pattern: "birchCrystalBarrier", status: "stage4" },
+    { name: "第二神威「凍花白嵐」", pattern: "birchWhiteBlizzard", status: "stage4" },
+    { name: "第三神威「凍林横葬」", pattern: "birchHorizontalBurial", status: "stage4" },
   ];
 
   class Boss {
@@ -1945,6 +2203,7 @@
             game.audio.playBoss(game.currentStage.bossBgm);
             if (game.currentStageId === "stage2") game.startBossSpellCutin("ヒノキ将軍・檜風開陣");
             if (game.currentStageId === "stage3") game.startBossSpellCutin("ロード・ラグウィード・秋塵毒花");
+            if (game.currentStageId === "stage4") game.startBossSpellCutin("シラカバ・プリースト・凍花聖堂");
             this.beginCurrentCard(game);
           });
         }
@@ -2091,6 +2350,7 @@
     enemyClearOnCardChange(game) {
       game.enemyBullets = [];
       game.lasers = [];
+      game.iceWalls = [];
       for (let i = 0; i < 18; i += 1) {
         game.particles.push(new Particle(this.x + (Math.random() - 0.5) * 90, this.y + (Math.random() - 0.5) * 60, "#fff0a2"));
       }
@@ -2105,7 +2365,7 @@
         return;
       }
 
-      if (this.definition.asset === HINOKI_BOSS_ASSET || this.definition.asset === LORD_RAGWEED_ASSET) {
+      if (this.definition.placeholder || this.definition.asset === HINOKI_BOSS_ASSET || this.definition.asset === LORD_RAGWEED_ASSET) {
         this.drawBossPlaceholder(ctx);
         ctx.restore();
         return;
@@ -2156,6 +2416,12 @@
         ctx.fillText("ロード", 0, -20);
         ctx.fillText("ラグ", 0, 4);
         ctx.fillText("ウィード", 0, 28);
+      } else if (this.definition.placeholder === "birchPriest") {
+        ctx.fillStyle = "#e8f8ff";
+        ctx.fillText("シラカバ", 0, -20);
+        ctx.fillText("プリースト", 0, 4);
+        ctx.font = "700 11px system-ui, sans-serif";
+        ctx.fillText("TEMP", 0, 28);
       } else {
         ctx.fillText("ヒノキ", 0, -10);
         ctx.fillText("将軍", 0, 14);
@@ -2555,16 +2821,18 @@
   }
 
   class BackgroundManager {
-    constructor(src) {
+    constructor(src, mode = null) {
       this.image = new Image();
       this.loaded = false;
       this.failed = false;
-      this.setSource(src);
+      this.mode = mode;
+      this.setSource(src, mode);
     }
 
-    setSource(src) {
+    setSource(src, mode = null) {
       this.loaded = false;
       this.failed = false;
+      this.mode = mode;
       this.image.onload = () => {
         this.loaded = true;
       };
@@ -2601,11 +2869,13 @@
 
       ctx.save();
       const mist = ctx.createLinearGradient(0, top, 0, top + height);
-      mist.addColorStop(0, "rgba(168, 176, 99, 0)");
-      mist.addColorStop(0.35, "rgba(168, 176, 99, 0.22)");
-      mist.addColorStop(0.5, "rgba(198, 188, 108, 0.36)");
-      mist.addColorStop(0.65, "rgba(168, 176, 99, 0.22)");
-      mist.addColorStop(1, "rgba(168, 176, 99, 0)");
+      const seamColor = this.mode === "snowfield" ? "205, 232, 248" : "168, 176, 99";
+      const seamCore = this.mode === "snowfield" ? "232, 247, 255" : "198, 188, 108";
+      mist.addColorStop(0, `rgba(${seamColor}, 0)`);
+      mist.addColorStop(0.35, `rgba(${seamColor}, 0.22)`);
+      mist.addColorStop(0.5, `rgba(${seamCore}, 0.36)`);
+      mist.addColorStop(0.65, `rgba(${seamColor}, 0.22)`);
+      mist.addColorStop(1, `rgba(${seamColor}, 0)`);
       ctx.fillStyle = mist;
       ctx.fillRect(0, top, W, height);
 
@@ -2858,7 +3128,7 @@
       this.checkpoints = new CheckpointManager();
       this.save = new SaveManager();
       this.difficulty.set(this.save.data.settings?.lastDifficulty || "normal");
-      this.background = new BackgroundManager(this.currentStage.background);
+      this.background = new BackgroundManager(this.currentStage.background, this.currentStage.backgroundMode);
       this.audio = new AudioManager();
       this.fullscreen = new FullscreenManager(document.documentElement);
       this.bossImageCache = new Map();
@@ -2886,7 +3156,8 @@
         { label: "STAGE 1　春の花粉参道", action: "stage1" },
         { label: "STAGE 2　檜風街道", action: "stage2" },
         { label: "STAGE 3　秋花粉の廃道", action: "stage3" },
-        { label: "STAGE 4　COMING SOON", action: "stage4", disabled: true },
+        { label: "STAGE 4　白銀樹海・凍花聖堂", action: "stage4" },
+        { label: "STAGE 5　COMING SOON", action: "stage5", disabled: true },
       ]);
       this.optionsMenu = new MenuManager([
         { label: "BGM VOLUME", action: "bgm" },
@@ -2906,6 +3177,7 @@
       this.followers = [];
       this.particles = [];
       this.lasers = [];
+      this.iceWalls = [];
       this.boss = null;
       this.playerSpellCount = 3;
       this.playerSpellTimer = 0;
@@ -2986,7 +3258,7 @@
       this.currentStageId = STAGE_DEFINITIONS[stageId] ? stageId : "stage1";
       this.state.stageName = this.currentStage.title;
       DIALOGUE_CONTEXT.bossName = this.currentStage.boss.name;
-      this.background.setSource(this.currentStage.background);
+      this.background.setSource(this.currentStage.background, this.currentStage.backgroundMode);
       this.preloadBossImage(this.currentStage.boss.asset);
       this.suginomikotoCutinLoaded = false;
       this.suginomikotoCutin.src = `${this.currentStage.boss.cutin}?v=${APP_VERSION}`;
@@ -3024,6 +3296,25 @@
       this.start(false, false, stageId);
     }
 
+    beginDebugStage(stageId, phase = 0) {
+      if (!STAGE_DEFINITIONS[stageId]) return false;
+      this.currentMode = "stageSelect";
+      this.start(false, false, stageId);
+      this.dialogue.completeNow();
+      if (phase <= 0) return true;
+      this.state.time = this.currentStage.bossTime;
+      this.spawnStageEnemies();
+      if (!this.boss) return false;
+      this.boss.entered = true;
+      this.boss.dialogueStarted = true;
+      this.boss.y = 118;
+      this.boss.cardIndex = clamp(phase - 1, 0, this.boss.spellCards.length - 1);
+      this.boss.beginCurrentCard(this);
+      this.audio.playBoss(this.currentStage.bossBgm);
+      this.state.bossNameTimer = 90;
+      return true;
+    }
+
     start(fromCheckpoint = false, keepScore = false, stageId = this.currentStageId, arcadeCarry = null) {
       this.configureStage(stageId);
       const startTime = fromCheckpoint ? this.checkpoints.currentPoint.time : 0;
@@ -3054,6 +3345,7 @@
       this.followers = [];
       this.particles = [];
       this.lasers = [];
+      this.iceWalls = [];
       this.boss = null;
       this.playerSpellCount = carried ? carried.spellCount : keepScore ? preservedSpellCount : 3;
       spellButton.disabled = this.playerSpellCount <= 0;
@@ -3136,6 +3428,7 @@
       this.pointItems = [];
       this.followers = [];
       this.lasers = [];
+      this.iceWalls = [];
       this.boss = null;
       this.playerSpellTimer = 0;
       this.playerSpellActive = false;
@@ -3439,8 +3732,13 @@
           disabled: !this.save.isStageCleared("stage2"),
         },
         {
-          label: this.save.isStageCleared("stage3") ? "STAGE 4　COMING SOON" : "STAGE 4　未解放",
+          label: this.save.isStageCleared("stage3") ? STAGE_DEFINITIONS.stage4.selectLabel : "STAGE 4　未解放",
           action: "stage4",
+          disabled: !this.save.isStageCleared("stage3"),
+        },
+        {
+          label: this.save.isStageCleared("stage4") ? "STAGE 5　COMING SOON" : "STAGE 5　未解放",
+          action: "stage5",
           disabled: true,
         },
       ]);
@@ -3678,6 +3976,7 @@
       this.playerBullets = [];
       this.enemyBullets = [];
       this.lasers = [];
+      this.iceWalls = [];
       this.powerItems = [];
       this.pointItems = [];
       this.particles = [];
@@ -4005,6 +4304,7 @@
       this.playerBullets.forEach((b) => b.update());
       this.enemyBullets.forEach((b) => b.update());
       this.updateLasers();
+      this.updateIceWalls();
       if (this.boss) this.boss.update(this, deltaTime);
 
       this.resolveCollisions();
@@ -4042,6 +4342,7 @@
       this.player.invincible = Math.max(this.player.invincible, 180);
       this.cancelEnemyBullets(true);
       this.lasers = [];
+      this.iceWalls = [];
       this.state.shake = 16;
       this.state.showMessage("履技発動：スリッパ・ノヴァ", 100);
       this.audio.playSE("cutin_haou_start", { maxVoices: 1 });
@@ -4257,6 +4558,45 @@
         spawn(94, -48, "large", "spider");
         spawn(W - 94, -92, "large", "spider");
         spawn(W / 2, -146, "medium", "hover");
+      } else if (pattern === "birchSmallLeft" || pattern === "birchSmallRight") {
+        const fromLeft = pattern === "birchSmallLeft";
+        const count = this.difficulty.current === "easy" ? 4 : 6;
+        for (let i = 0; i < count; i += 1) {
+          spawn(fromLeft ? -28 - i * 24 : W + 28 + i * 24, 150 + i * 62, "small", fromLeft ? "crossRight" : "crossLeft");
+        }
+      } else if (pattern === "birchAlternating") {
+        for (let i = 0; i < 7; i += 1) {
+          const fromLeft = i % 2 === 0;
+          spawn(fromLeft ? -30 - i * 12 : W + 30 + i * 12, 105 + (i % 5) * 118, "small", fromLeft ? "crossRight" : "crossLeft");
+        }
+      } else if (pattern === "birchMediumLeft" || pattern === "birchMediumRight") {
+        const fromLeft = pattern === "birchMediumLeft";
+        spawn(fromLeft ? -45 : W + 45, 210, "medium", fromLeft ? "sideHoverLeft" : "sideHoverRight");
+        spawn(fromLeft ? -85 : W + 85, 420, "medium", fromLeft ? "crossRight" : "crossLeft");
+      } else if (pattern === "birchFanCross") {
+        spawn(-42, 190, "medium", "sideHoverLeft");
+        spawn(W + 42, 450, "medium", "sideHoverRight");
+        if (this.difficulty.current !== "easy") spawn(-80, 610, "small", "crossRight");
+      } else if (pattern === "birchLargeLeft" || pattern === "birchLargeRight") {
+        const fromLeft = pattern === "birchLargeLeft";
+        spawn(fromLeft ? -60 : W + 60, 330, "large", fromLeft ? "crossRight" : "crossLeft");
+        spawn(fromLeft ? W + 32 : -32, 170, "small", fromLeft ? "crossLeft" : "crossRight");
+        spawn(fromLeft ? W + 64 : -64, 590, "small", fromLeft ? "crossLeft" : "crossRight");
+      } else if (pattern === "birchPincer") {
+        spawn(-62, 260, "large", "crossRight");
+        spawn(W + 62, 510, "large", "crossLeft");
+      } else if (pattern === "birchFrozenLane") {
+        spawn(-48, 160, "medium", "sideHoverLeft");
+        spawn(W + 48, 360, "large", "crossLeft");
+        spawn(-72, 610, "medium", "crossRight");
+      } else if (pattern === "birchWhiteout") {
+        spawn(-62, 220, "large", "crossRight");
+        spawn(W + 62, 500, "large", "crossLeft");
+        const count = this.difficulty.current === "hard" ? 6 : 4;
+        for (let i = 0; i < count; i += 1) {
+          const fromLeft = i % 2 === 0;
+          spawn(fromLeft ? -30 - i * 20 : W + 30 + i * 20, 120 + i * 115, "small", fromLeft ? "crossRight" : "crossLeft");
+        }
       }
     }
 
@@ -4283,6 +4623,20 @@
         }
       });
       this.lasers = this.lasers.filter((l) => l.age < l.warn + l.live);
+    }
+
+    updateIceWalls() {
+      this.iceWalls.forEach((wall) => {
+        wall.age += 1;
+        if (wall.age <= wall.warn || wall.age >= wall.warn + wall.live) return;
+        const progress = Math.min(1, (wall.age - wall.warn) / 12);
+        const length = wall.maxLength * progress;
+        const hit = this.player.hitPoint;
+        const withinY = Math.abs(hit.y - wall.y) < wall.height / 2 + this.player.r;
+        const withinX = wall.side === "left" ? hit.x < length + this.player.r : hit.x > W - length - this.player.r;
+        if (withinY && withinX) this.player.hit(this);
+      });
+      this.iceWalls = this.iceWalls.filter((wall) => wall.age < wall.warn + wall.live);
     }
 
     resolveCollisions() {
@@ -4491,6 +4845,7 @@
       addScore(this, SCORE_VALUES.bossDefeat + SCORE_VALUES.stageClear);
       this.enemyBullets = [];
       this.lasers = [];
+      this.iceWalls = [];
       this.endPlayerSpell();
       this.audio.pauseStage();
       this.state.showMessage("消滅", 120);
@@ -4517,6 +4872,7 @@
       this.drawBackground();
 
       this.lasers.forEach((l) => this.drawLaser(l));
+      this.iceWalls.forEach((wall) => this.drawIceWall(wall));
       this.enemies.forEach((e) => e.draw(ctx));
       this.powerItems.forEach((item) => item.draw(ctx));
       this.pointItems.forEach((item) => item.draw(ctx));
@@ -4747,6 +5103,11 @@
 
     drawBackground() {
       const t = this.state.time || 0;
+      if (this.currentStage.backgroundMode === "snowfield") {
+        if (!this.background.draw(ctx, t)) this.drawStage4PlaceholderBackground(t);
+        this.drawStage4Snow(t);
+        return;
+      }
       if (this.background.draw(ctx, t)) {
         this.drawPollenForeground(t);
         return;
@@ -4789,6 +5150,82 @@
       }
     }
 
+    drawStage4PlaceholderBackground(t) {
+      const bossApproach = clamp((t - (this.currentStage.bossTime - 420)) / 420, 0, 1);
+      const sky = ctx.createLinearGradient(0, 0, 0, H);
+      sky.addColorStop(0, bossApproach ? "#8294aa" : "#b8d4e2");
+      sky.addColorStop(0.55, "#dcebf0");
+      sky.addColorStop(1, "#9eb8c4");
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, W, H);
+
+      ctx.fillStyle = "rgba(244, 251, 255, 0.9)";
+      ctx.beginPath();
+      ctx.moveTo(0, H * 0.44);
+      for (let x = 0; x <= W; x += 30) ctx.lineTo(x, H * 0.43 + Math.sin(x * 0.045 + t * 0.004) * 14);
+      ctx.lineTo(W, H);
+      ctx.lineTo(0, H);
+      ctx.closePath();
+      ctx.fill();
+
+      for (let side = 0; side < 2; side += 1) {
+        for (let i = 0; i < 7; i += 1) {
+          const x = side === 0 ? 22 + i * 24 : W - 22 - i * 24;
+          const depth = 0.72 + i * 0.05;
+          const width = 10 + i * 1.6;
+          ctx.fillStyle = `rgba(244, 248, 248, ${depth})`;
+          ctx.fillRect(x - width / 2, -20, width, H + 40);
+          ctx.fillStyle = "rgba(64, 77, 82, 0.58)";
+          for (let mark = 0; mark < 9; mark += 1) {
+            const y = ((mark * 103 + i * 47 + t * 0.2) % (H + 80)) - 40;
+            ctx.fillRect(x - width / 2, y, width * 0.72, 4);
+          }
+        }
+      }
+
+      if (bossApproach > 0) {
+        ctx.globalAlpha = bossApproach;
+        ctx.strokeStyle = "rgba(225, 244, 255, 0.82)";
+        ctx.lineWidth = 8;
+        ctx.strokeRect(128, 118, W - 256, 260);
+        ctx.beginPath();
+        ctx.moveTo(112, 118);
+        ctx.lineTo(W / 2, 48);
+        ctx.lineTo(W - 112, 118);
+        ctx.stroke();
+        ctx.fillStyle = "rgba(196, 226, 242, 0.5)";
+        ctx.fillRect(W / 2 - 42, 244, 84, 134);
+        ctx.globalAlpha = 1;
+      }
+
+      const vignette = ctx.createLinearGradient(0, 0, W, 0);
+      vignette.addColorStop(0, "rgba(31, 55, 68, 0.38)");
+      vignette.addColorStop(0.5, "rgba(255,255,255,0)");
+      vignette.addColorStop(1, "rgba(31, 55, 68, 0.38)");
+      ctx.fillStyle = vignette;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    drawStage4Snow(t) {
+      const bossCalm = t >= this.currentStage.bossTime - 180 ? 0.32 : 1;
+      const intensity = (0.45 + 0.55 * clamp(t / Math.max(1, this.currentStage.bossTime - 300), 0, 1)) * bossCalm;
+      const count = Math.round(42 + intensity * 54);
+      ctx.save();
+      ctx.lineCap = "round";
+      for (let i = 0; i < count; i += 1) {
+        const speed = 1.8 + (i % 6) * 0.46;
+        const x = ((i * 83 + t * speed * 1.8) % (W + 90)) - 45;
+        const y = ((i * 137 + t * (0.45 + (i % 4) * 0.08)) % (H + 50)) - 25;
+        ctx.strokeStyle = `rgba(244, 252, 255, ${0.22 + (i % 4) * 0.1})`;
+        ctx.lineWidth = 1 + (i % 3);
+        ctx.beginPath();
+        ctx.moveTo(x - 10 * intensity, y + 3);
+        ctx.lineTo(x + 10 * intensity, y - 3);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
     drawPollenForeground(t) {
       for (let i = 0; i < 54; i += 1) {
         const x = (i * 67 + Math.sin(t * 0.012 + i) * 34) % W;
@@ -4814,6 +5251,46 @@
       ctx.fillRect(l.x - l.width, 40, l.width * 2, H - 40);
       ctx.fillStyle = "rgba(255,255,255,0.85)";
       ctx.fillRect(l.x - 4, 40, 8, H - 40);
+    }
+
+    drawIceWall(wall) {
+      const warning = wall.age <= wall.warn;
+      const progress = warning ? 0 : Math.min(1, (wall.age - wall.warn) / 12);
+      const length = warning ? wall.maxLength : wall.maxLength * progress;
+      const x = wall.side === "left" ? 0 : W - length;
+      ctx.save();
+      if (warning) {
+        ctx.fillStyle = `rgba(207, 240, 255, ${0.12 + Math.sin(wall.age * 0.35) * 0.07})`;
+        ctx.fillRect(x, wall.y - wall.height / 2, length, wall.height);
+        ctx.strokeStyle = "rgba(255,255,255,0.68)";
+        ctx.setLineDash([12, 8]);
+        ctx.strokeRect(x, wall.y - wall.height / 2, length, wall.height);
+        ctx.restore();
+        return;
+      }
+      const gradient = ctx.createLinearGradient(x, 0, x + length, 0);
+      if (wall.side === "left") {
+        gradient.addColorStop(0, "rgba(236,249,255,0.96)");
+        gradient.addColorStop(1, "rgba(130,190,220,0.86)");
+      } else {
+        gradient.addColorStop(0, "rgba(130,190,220,0.86)");
+        gradient.addColorStop(1, "rgba(236,249,255,0.96)");
+      }
+      ctx.fillStyle = gradient;
+      ctx.fillRect(x, wall.y - wall.height / 2, length, wall.height);
+      ctx.strokeStyle = "rgba(255,255,255,0.94)";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(x, wall.y - wall.height / 2, length, wall.height);
+      ctx.strokeStyle = "rgba(57,93,111,0.55)";
+      ctx.lineWidth = 2;
+      for (let mark = 14; mark < length; mark += 32) {
+        const markX = wall.side === "left" ? mark : W - mark;
+        ctx.beginPath();
+        ctx.moveTo(markX, wall.y - wall.height / 2 + 5);
+        ctx.lineTo(markX - 7, wall.y + wall.height / 2 - 5);
+        ctx.stroke();
+      }
+      ctx.restore();
     }
 
     drawUi() {
@@ -5003,7 +5480,7 @@
         ctx.fillText(`SELECTED HIGH SCORE  ${selectedScore}`, W / 2, 600);
         ctx.fillStyle = "rgba(239, 255, 237, 0.75)";
         ctx.font = "13px system-ui, sans-serif";
-        ctx.fillText("Stage4は将来のアップデートで実装予定", W / 2, 628);
+        ctx.fillText("Stage5は将来のアップデートで実装予定", W / 2, 628);
         ctx.fillText("Esc / B で戻る", W / 2, 652);
         return;
       }
@@ -5019,10 +5496,10 @@
         ctx.fillText("マウス: 移動  左ボタンショット  右クリック履技", W / 2, 680);
         ctx.fillText("Xbox: 左スティック/D-pad移動  Aショット/決定  X履技  LB/RB低速", W / 2, 704);
       } else if (this.titlePanel === "score") {
-        ctx.fillText(`EASY　S1 ${this.save.getHighScore("easy", "stage1")}　S2 ${this.save.getHighScore("easy", "stage2")}　S3 ${this.save.getHighScore("easy", "stage3")}`, W / 2, 632);
-        ctx.fillText(`NORMAL　S1 ${this.save.getHighScore("normal", "stage1")}　S2 ${this.save.getHighScore("normal", "stage2")}　S3 ${this.save.getHighScore("normal", "stage3")}`, W / 2, 656);
-        ctx.fillText(`HARD　S1 ${this.save.getHighScore("hard", "stage1")}　S2 ${this.save.getHighScore("hard", "stage2")}　S3 ${this.save.getHighScore("hard", "stage3")}`, W / 2, 680);
-        ctx.fillText(`TOTAL ${this.save.getHighScore(this.difficulty.current, "total")}　S1 ${this.save.isStageCleared("stage1") ? "CLEAR" : "---"}　S2 ${this.save.isStageCleared("stage2") ? "CLEAR" : "---"}　S3 ${this.save.isStageCleared("stage3") ? "CLEAR" : "---"}`, W / 2, 712);
+        ctx.fillText(`EASY　S1 ${this.save.getHighScore("easy", "stage1")}　S2 ${this.save.getHighScore("easy", "stage2")}　S3 ${this.save.getHighScore("easy", "stage3")}　S4 ${this.save.getHighScore("easy", "stage4")}`, W / 2, 632);
+        ctx.fillText(`NORMAL　S1 ${this.save.getHighScore("normal", "stage1")}　S2 ${this.save.getHighScore("normal", "stage2")}　S3 ${this.save.getHighScore("normal", "stage3")}　S4 ${this.save.getHighScore("normal", "stage4")}`, W / 2, 656);
+        ctx.fillText(`HARD　S1 ${this.save.getHighScore("hard", "stage1")}　S2 ${this.save.getHighScore("hard", "stage2")}　S3 ${this.save.getHighScore("hard", "stage3")}　S4 ${this.save.getHighScore("hard", "stage4")}`, W / 2, 680);
+        ctx.fillText(`TOTAL ${this.save.getHighScore(this.difficulty.current, "total")}　S1 ${this.save.isStageCleared("stage1") ? "CLEAR" : "---"}　S2 ${this.save.isStageCleared("stage2") ? "CLEAR" : "---"}　S3 ${this.save.isStageCleared("stage3") ? "CLEAR" : "---"}　S4 ${this.save.isStageCleared("stage4") ? "CLEAR" : "---"}`, W / 2, 712);
       } else {
         ctx.fillStyle = "rgba(0, 0, 0, 0.42)";
         ctx.fillRect(86, 626, W - 172, 38);
@@ -5180,8 +5657,13 @@
   window.addEventListener("keishis-splash-finished", () => {
     if (game.state.mode === "title") game.ensureTitleBGM();
   });
-  if (new URLSearchParams(location.search).has("debug")) {
+  const debugParams = new URLSearchParams(location.search);
+  if (debugParams.has("debug")) {
     window.__POLLEN_GAME__ = game;
+    const requestedStage = debugParams.get("stage");
+    const stageId = requestedStage ? (requestedStage.startsWith("stage") ? requestedStage : `stage${requestedStage}`) : null;
+    const phase = Number.parseInt(debugParams.get("phase") || "0", 10) || 0;
+    if (stageId) game.beginDebugStage(stageId, phase);
   }
   updateManager.init();
   requestAnimationFrame(game.loop);

@@ -1,8 +1,13 @@
 {
-  "version": "0.37.8",
+  "version": "0.38.0",
   "build": "2026-06-26",
   "status": "MVP公開準備版",
   "updates": [
+    {
+      "version": "0.38.0",
+      "date": "2026-06-28",
+      "summary": "Stage4「白銀樹海・凍花聖堂」の基盤を追加。左右侵入型の白樺花粉ウェーブ、シラカバ・プリーストと三神威、仮素材フォールバック、Stage Select・arcade連続進行・神威直行デバッグに対応。専用背景・立ち絵・カットイン・道中BGM・ボスBGMを追加。"
+    },
     {
       "version": "0.37.8",
       "date": "2026-06-27",
@@ -283,6 +288,14 @@
     "assets/characters/lord_ragweed.png",
     "assets/cutin/lord_ragweed_cutin.png",
     "assets/audio/bgm/stage3_theme.mp3",
-    "assets/audio/bgm/boss3_theme.mp3"
+    "assets/audio/bgm/boss3_theme.mp3",
+    "assets/stage4/background.png",
+    "assets/stage4/shirakaba-priest.png",
+    "assets/stage4/shirakaba-cut-in.png",
+    "assets/stage4/enemy-small.png",
+    "assets/stage4/enemy-medium.png",
+    "assets/stage4/enemy-large.png",
+    "assets/audio/stage4.mp3",
+    "assets/audio/shirakaba-boss.mp3"
   ]
 }
