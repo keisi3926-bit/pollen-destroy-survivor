@@ -47,6 +47,12 @@
     deity: "assets/stage5/daikafun-daijin.png",
     deityCutin: "assets/stage5/daikafun-daijin-cutin.png",
     abyss: "assets/stage5/nameless-abyss.png",
+    routeSugiHinokiBgm: "assets/audio/stage5/route-sugi-hinoki.mp3",
+    routeRagweedShirakabaBgm: "assets/audio/stage5/route-ragweed-shirakaba.mp3",
+    taikunBgm: "assets/audio/stage5/taikun-theme.mp3",
+    daijinBgm: "assets/audio/stage5/daijin-theme.mp3",
+    abyssFirstBgm: "assets/audio/stage5/abyss-first.mp3",
+    abyssSecondBgm: "assets/audio/stage5/abyss-second.mp3",
   };
   const BGM_STAGE1 = "assets/audio/stage1_spring_pollen_path.mp3";
   const BGM_BOSS1 = "assets/audio/boss_suginomikoto.mp3";
@@ -64,9 +70,13 @@
     boss3: BGM_BOSS3,
     stage4: STAGE4_ASSETS.stageBgm,
     boss4: STAGE4_ASSETS.bossBgm,
-    stage5: STAGE4_ASSETS.stageBgm,
-    boss5: BGM_BOSS1,
-    abyss: BGM_BOSS3,
+    stage5: STAGE5_ASSETS.routeSugiHinokiBgm,
+    stage5Back: STAGE5_ASSETS.routeRagweedShirakabaBgm,
+    boss5: STAGE5_ASSETS.taikunBgm,
+    taikun: STAGE5_ASSETS.taikunBgm,
+    daijin: STAGE5_ASSETS.daijinBgm,
+    abyss: STAGE5_ASSETS.abyssFirstBgm,
+    abyssBack: STAGE5_ASSETS.abyssSecondBgm,
   };
   const SE_NAMES = [
     "item_p_small",
@@ -131,7 +141,7 @@
     scorePerGraze: 50,
     milestones: [100, 500, 1000],
   };
-  const APP_VERSION = "0.39.0";
+  const APP_VERSION = "0.39.1";
   const STAGE_ORDER = ["stage1", "stage2", "stage3", "stage4", "stage5"];
   const ARCADE_CLEAR_WAIT_FRAMES = 150;
   const FIXED_STEP_SECONDS = 1 / 60;
@@ -2899,7 +2909,7 @@
       this.specialAge = 0;
       this.createBoss(this.rushDefinition(entry));
       this.game.state.showMessage(`四天王再戦 ${index + 1}/4`, 120);
-      this.game.audio.playBoss("boss5");
+      this.game.audio.playBoss(index < 2 ? "stage5" : "stage5Back");
     }
 
     startSovereign() {
@@ -2914,6 +2924,7 @@
         renderSize: { width: 102, height: 154 },
         spellCards: FINAL_STAGE_CONFIG.sovereignCards,
       });
+      this.game.audio.playBoss("taikun");
       this.game.state.showMessage("大花粉大君　顕現", 160);
     }
 
@@ -2946,6 +2957,7 @@
           type: "spell",
         }],
       });
+      this.game.audio.playBoss("daijin");
       this.game.state.showMessage("大花粉大神　天地創造", 160);
     }
 
@@ -3179,6 +3191,8 @@
 
     updateAbyssCycle(boss, card) {
       const config = FINAL_STAGE_CONFIG.abyss;
+      const bgmName = card.hp <= card.maxHp * 0.5 ? "abyssBack" : "abyss";
+      if (this.game.audio.currentBGMName !== bgmName) this.game.audio.playBoss(bgmName);
       const localAge = card.age % config.cycleFrames;
       const attackIndex = Math.floor(localAge / (config.cycleFrames / 3));
       this.abyssAttackName = config.attackNames[attackIndex];

@@ -683,6 +683,7 @@ assert.equal(game.currentMode, "arcade", "Stage5 transition should preserve arca
 assert.equal(game.finalStageDirector.phase, "approach", "Stage5 should begin with the final approach");
 assert.ok(game.background.image.src.includes("final-layered-worldscape.jpg"), "Stage5 should use the layered four-season background");
 assert.equal(game.score.value, 80000, "Stage5 should preserve the arcade score");
+assert.equal(game.audio.currentBGMName, "stage5", "Stage5 should begin with the Sugi/Hinoki route theme");
 
 game.state.time = game.currentStage.bossTime;
 game.finalStageDirector.update();
@@ -691,6 +692,11 @@ for (let rush = 0; rush < expectedRushNames.length; rush += 1) {
   assert.equal(game.finalStageDirector.phase, "rush", `boss rush ${rush + 1} should be active`);
   assert.equal(game.boss.name, expectedRushNames[rush], `boss rush ${rush + 1} should use the configured lord`);
   assert.equal(game.boss.spellCards.length, 1, "each rush boss should have one shortened HP bar");
+  assert.equal(
+    game.audio.currentBGMName,
+    rush < 2 ? "stage5" : "stage5Back",
+    `boss rush ${rush + 1} should use the correct route-half theme`
+  );
   game.boss.currentCard.hp = 0;
   game.boss.nextCard(game, "hp-break");
   game.pendingBossDefeat = 0;
@@ -701,6 +707,7 @@ for (let rush = 0; rush < expectedRushNames.length; rush += 1) {
 
 assert.equal(game.finalStageDirector.phase, "sovereign", "boss rush completion should summon Daikafun Taikun");
 assert.equal(game.boss.name, "大花粉大君", "the sovereign form should use the configured boss name");
+assert.equal(game.audio.currentBGMName, "taikun", "Daikafun Taikun should use its dedicated theme");
 assert.equal(game.boss.spellCards.length, 5, "Daikafun Taikun should have five divine attacks");
 for (let cardIndex = 0; cardIndex < 5; cardIndex += 1) {
   assert.equal(game.boss.cardIndex, cardIndex, `sovereign card ${cardIndex + 1} should run in order`);
@@ -723,6 +730,7 @@ game.finalStageDirector.transformation = 1;
 game.finalStageDirector.update();
 assert.equal(game.finalStageDirector.phase, "deity", "transformation should create Daikafun Daijin");
 assert.equal(game.boss.name, "大花粉大神", "transformed boss name should be updated");
+assert.equal(game.audio.currentBGMName, "daijin", "Daikafun Daijin should use its dedicated theme");
 assert.equal(game.boss.currentCard.pattern, "finalCreationRite", "sixth divine attack should use the creation rite pattern");
 
 game.boss.currentCard.hp = game.boss.currentCard.maxHp;
@@ -762,11 +770,15 @@ game.finalStageDirector.intermission = 1;
 game.finalStageDirector.update();
 assert.equal(game.finalStageDirector.phase, "abyss", "sixth divine attack should lead to the Abyss bonus battle");
 assert.equal(game.boss.name, "名も無き深淵（アビス）", "Abyss should use its dedicated boss name");
+assert.equal(game.audio.currentBGMName, "abyss", "Abyss should begin with its first-half theme");
 assert.equal(game.boss.currentCard.isSpell, false, "Abyss should use normal boss UI rather than divine attack UI");
 assert.ok(game.boss.currentCard.maxHp >= 5000, "Abyss should have a very long HP bar");
 game.boss.currentCard.age = 0;
 game.boss.currentCard.update(game.boss, game);
 assert.ok(game.enemyBullets.length > 0, "Abyss attack cycle should generate its first regular wave");
+game.boss.currentCard.hp = game.boss.currentCard.maxHp * 0.49;
+game.boss.currentCard.update(game.boss, game);
+assert.equal(game.audio.currentBGMName, "abyssBack", "Abyss should switch to its second-half theme below 50% HP");
 
 game.boss.currentCard.hp = 0;
 game.boss.nextCard(game, "hp-break");

@@ -1,4 +1,4 @@
-const CACHE_VERSION = "pollen-destroy-survivor-v0.39.0";
+const CACHE_VERSION = "pollen-destroy-survivor-v0.39.1";
 const APP_SHELL = [
   "./",
   "index.html",
@@ -28,6 +28,12 @@ const APP_SHELL = [
   "assets/stage5/daikafun-daijin.png",
   "assets/stage5/daikafun-daijin-cutin.png",
   "assets/stage5/nameless-abyss.png",
+  "assets/audio/stage5/route-sugi-hinoki.mp3",
+  "assets/audio/stage5/route-ragweed-shirakaba.mp3",
+  "assets/audio/stage5/taikun-theme.mp3",
+  "assets/audio/stage5/daijin-theme.mp3",
+  "assets/audio/stage5/abyss-first.mp3",
+  "assets/audio/stage5/abyss-second.mp3",
   "assets/audio/stage1_spring_pollen_path.mp3",
   "assets/audio/boss_suginomikoto.mp3",
   "assets/audio/stage2_theme.mp3",

@@ -219,6 +219,14 @@ Assets can be replaced independently under `assets/stage5/`:
 - `daikafun-daijin.png` / `daikafun-daijin-cutin.png`
 - `nameless-abyss.png`
 
+Stage5 music is split by progression:
+
+- `route-sugi-hinoki.mp3`: boss-rush first half (Suginomikoto / Hinoki Shogun)
+- `route-ragweed-shirakaba.mp3`: boss-rush second half (Lord Ragweed / Shirakaba Priest)
+- `taikun-theme.mp3`: Daikafun Taikun
+- `daijin-theme.mp3`: Daikafun Daijin
+- `abyss-first.mp3` / `abyss-second.mp3`: Nameless Abyss, switched at 50% HP
+
 Development entry points:
 
 ```text
