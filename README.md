@@ -263,6 +263,10 @@ The developer build starts with invincibility, infinite lives, infinite
 continues, infinite special attacks, hitbox display, FPS, and runtime state
 diagnostics enabled.
 
+The overlay starts in the lower-right corner. Drag its header to move it, tap
+`x` to close it, or use `Developer > DEBUG OVERLAY ON/OFF` to restore it on
+touch devices.
+
 ## Local ranking
 
 `RANKING` on the title screen displays the ten best local no-continue runs.

@@ -189,7 +189,7 @@
     scorePerGraze: 50,
     milestones: [100, 500, 1000],
   };
-  const APP_VERSION = "0.42.0";
+  const APP_VERSION = "0.42.1";
   const STAGE_ORDER = ["stage1", "stage2", "stage3", "stage4", "stage5"];
   const ARCADE_CLEAR_WAIT_FRAMES = 150;
   const FIXED_STEP_SECONDS = 1 / 60;
@@ -442,7 +442,7 @@
           {
             name: "終神威「杉並木封鎖」",
             duration: 2580,
-            durationTimes: { easy: 3300, normal: 3000, hard: 2580 },
+            durationTimes: { easy: 3600, normal: 3360, hard: 2880 },
             hp: 620,
             pattern: "cedarFinal",
             lifeBars: 3,
@@ -3113,6 +3113,8 @@
       const card = this.currentCard;
       card.remainingLifeBars -= 1;
       card.hp = card.maxHp;
+      // Multi-life finishers grant a fresh timer for every gauge.
+      card.age = 0;
       this.hp = card.hp;
       this.maxHp = card.maxHp;
       this.enemyClearOnCardChange(game);
@@ -4946,6 +4948,17 @@
       this.currentWave = 0;
       this.debugVisible = this.developerMode;
       this.debugMode = this.developerMode;
+      this.developerOverlay = {
+        x: W - 218,
+        y: H - 226,
+        width: 210,
+        height: 210,
+        headerHeight: 26,
+        dragging: false,
+        pointerId: null,
+        offsetX: 0,
+        offsetY: 0,
+      };
       this.fps = 60;
       this.fpsFrames = 0;
       this.fpsLastTime = 0;
@@ -5394,7 +5407,10 @@
           return;
         }
         if (this.developerMode && (e.key === "F3" || e.key === "F8")) {
-          if (!e.repeat) this.debugVisible = !this.debugVisible;
+          if (!e.repeat) {
+            this.debugVisible = !this.debugVisible;
+            this.endDeveloperOverlayDrag();
+          }
           return;
         }
         if (this.developerMode && !e.repeat && e.key === "F6") {
@@ -5506,6 +5522,7 @@
         canvas.setPointerCapture(e.pointerId);
       });
       canvas.addEventListener("pointermove", (e) => {
+        if (this.moveDeveloperOverlay(e)) return;
         if (e.pointerType === "mouse" && this.state.mode === "stage" && !this.dialogue.active) {
           this.input.mouseActive = true;
           this.setTouch(e);
@@ -5516,10 +5533,12 @@
         this.updateTouchVector();
       });
       canvas.addEventListener("pointerup", (e) => {
+        if (this.endDeveloperOverlayDrag(e.pointerId)) return;
         if (e.pointerType === "mouse") this.input.fire = false;
         else this.releaseTouchMovement(e.pointerId);
       });
       canvas.addEventListener("pointercancel", (e) => {
+        this.endDeveloperOverlayDrag(e.pointerId);
         if (e.pointerType === "mouse") {
           this.input.fire = false;
           this.input.mouseActive = false;
@@ -5866,6 +5885,7 @@
         { label: "SPECIAL MAX", action: "special" },
         { label: "SCORE +100000", action: "score" },
         { label: "CLEAR ALL ENEMIES", action: "clear" },
+        { label: "DEBUG OVERLAY ON/OFF", action: "overlay" },
         { label: "BACK", action: "back" },
       ]);
       this.developerStageMenu.setItems(STAGE_ORDER.map((stageId) => ({
@@ -5943,6 +5963,10 @@
         this.playerSpellCooldown = 0;
       }
       if (action === "score") this.score.value += 100000;
+      if (action === "overlay") {
+        this.debugVisible = !this.debugVisible;
+        this.endDeveloperOverlayDrag();
+      }
       if (action === "clear") {
         this.enemies = [];
         this.enemyBullets = [];
@@ -6146,17 +6170,17 @@
     }
 
     handleCanvasTap(e) {
+      const pos = this.canvasPoint(e);
+      if (this.handleDeveloperOverlayPointerDown(e, pos)) return true;
       if (this.state.mode === "clear") {
         if (this.dialogue.active) return false;
         this.leaveClearScreen();
         return true;
       }
       if (this.state.mode === "nameEntry") {
-        const pos = this.canvasPoint(e);
         return this.nameEntry.handleTap(pos.x, pos.y);
       }
       if (this.state.mode !== "title" && this.state.mode !== "paused" && this.state.mode !== "gameover") return false;
-      const pos = this.canvasPoint(e);
       if (this.state.mode === "title" && this.titlePanel === "ranking") {
         this.titlePanel = "main";
         return true;
@@ -6213,6 +6237,43 @@
           this.activateGameOverItem();
         }
       }
+      return true;
+    }
+
+    handleDeveloperOverlayPointerDown(e, pos = this.canvasPoint(e)) {
+      if (!this.developerMode || !this.debugVisible) return false;
+      const panel = this.developerOverlay;
+      if (pos.x < panel.x || pos.x > panel.x + panel.width || pos.y < panel.y || pos.y > panel.y + panel.height) return false;
+      // Consume touches on the panel body so dragging/debug text never moves or fires the player.
+      if (pos.y > panel.y + panel.headerHeight) return true;
+      if (pos.x >= panel.x + panel.width - panel.headerHeight) {
+        this.debugVisible = false;
+        this.endDeveloperOverlayDrag();
+        return true;
+      }
+      panel.dragging = true;
+      panel.pointerId = e.pointerId;
+      panel.offsetX = pos.x - panel.x;
+      panel.offsetY = pos.y - panel.y;
+      canvas.setPointerCapture?.(e.pointerId);
+      return true;
+    }
+
+    moveDeveloperOverlay(e) {
+      const panel = this.developerOverlay;
+      if (!this.developerMode || !panel.dragging || panel.pointerId !== e.pointerId) return false;
+      const pos = this.canvasPoint(e);
+      panel.x = clamp(pos.x - panel.offsetX, 0, W - panel.width);
+      panel.y = clamp(pos.y - panel.offsetY, 0, H - panel.height);
+      return true;
+    }
+
+    endDeveloperOverlayDrag(pointerId = null) {
+      const panel = this.developerOverlay;
+      if (!panel?.dragging) return false;
+      if (pointerId !== null && panel.pointerId !== pointerId) return false;
+      panel.dragging = false;
+      panel.pointerId = null;
       return true;
     }
 
@@ -7871,11 +7932,11 @@
     }
 
     drawDeveloperOverlay() {
+      const panel = this.developerOverlay;
       const phase = this.currentStageId === "stage5"
         ? `${this.finalStageDirector.phase}${this.boss?.cardIndex !== undefined ? `/${this.boss.cardIndex + 1}` : ""}`
         : `${this.boss?.cardIndex !== undefined ? this.boss.cardIndex + 1 : "-"}`;
       const rows = [
-        "DEBUG MODE",
         "INVINCIBLE",
         "INFINITE SPELL / LIFE",
         `STAGE ${this.currentStageId.replace("stage", "")}`,
@@ -7888,11 +7949,21 @@
         "F8 OVERLAY / F9 CLEAR",
       ];
       ctx.fillStyle = "rgba(0, 0, 0, 0.78)";
-      ctx.fillRect(W - 218, 86, 210, rows.length * 17 + 14);
+      ctx.fillRect(panel.x, panel.y, panel.width, panel.height);
+      ctx.fillStyle = "rgba(255, 218, 117, 0.16)";
+      ctx.fillRect(panel.x, panel.y, panel.width, panel.headerHeight);
+      ctx.strokeStyle = "rgba(255, 218, 117, 0.6)";
+      ctx.strokeRect(panel.x, panel.y, panel.width, panel.height);
       ctx.fillStyle = "#ffda75";
       ctx.font = "11px ui-monospace, Consolas, monospace";
       ctx.textAlign = "left";
-      rows.forEach((row, index) => ctx.fillText(row, W - 208, 104 + index * 17));
+      ctx.fillText("DEBUG MODE  [DRAG]", panel.x + 10, panel.y + 17);
+      ctx.textAlign = "center";
+      ctx.font = "900 16px system-ui, sans-serif";
+      ctx.fillText("×", panel.x + panel.width - panel.headerHeight / 2, panel.y + 18);
+      ctx.font = "11px ui-monospace, Consolas, monospace";
+      ctx.textAlign = "left";
+      rows.forEach((row, index) => ctx.fillText(row, panel.x + 10, panel.y + panel.headerHeight + 16 + index * 17));
     }
 
     drawDebugOverlay() {

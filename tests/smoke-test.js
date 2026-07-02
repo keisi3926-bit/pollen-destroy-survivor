@@ -552,13 +552,18 @@ game.boss.update(game);
 finishBossCardTransition();
 assert.equal(game.boss.currentCard.pattern, "cedarFinal", "Suginomikoto final spell should restore the cedar lane laser pattern");
 assert.equal(game.boss.currentCard.lifeBars, 3, "final divine attack should use three HP bars");
-assert.equal(game.boss.currentCard.duration, 3000, "NORMAL final divine attack should allow more time per HP gauge");
+assert.equal(game.boss.currentCard.duration, 3360, "NORMAL final divine attack should allow 56 seconds per HP gauge");
 game.boss.currentCard.hp = Math.floor(game.boss.currentCard.maxHp / 2);
 game.boss.currentCard.age = game.boss.currentCard.duration;
 game.boss.update(game);
 assert.equal(game.boss.currentCard.remainingLifeBars, 2, "timing out a multi-gauge spell should advance to the next gauge");
 assert.equal(game.boss.currentCard.hp, game.boss.currentCard.maxHp, "next gauge should start with full HP after a timeout failure");
+assert.equal(game.boss.currentCard.age, 0, "timeout gauge transition should reset the per-gauge timer");
 assert.equal(game.pendingBossDefeat, 0, "timeout on a non-final gauge should not defeat the boss");
+game.boss.currentCard.age = 777;
+game.boss.breakCurrentLifeBar(game);
+assert.equal(game.boss.currentCard.remainingLifeBars, 1, "successful damage should advance a multi-gauge finisher");
+assert.equal(game.boss.currentCard.age, 0, "successful gauge break should also reset the per-gauge timer");
 
 ["stage2_boss_intro", "stage3_boss_intro"].forEach((sceneName) => {
   let completed = false;
@@ -626,6 +631,9 @@ game.boss.update(game);
 finishBossCardTransition();
 assert.equal(game.boss.currentCard.survival, false, "Stage2 survival should advance to the third phase");
 assert.equal(game.boss.currentCard.pattern, "hinokiFinal", "Stage2 final phase should use its dedicated pattern");
+game.boss.currentCard.age = 555;
+game.boss.breakCurrentLifeBar(game);
+assert.equal(game.boss.currentCard.age, 0, "Stage2 final gauge break should reset its timer");
 game.boss.currentCard.hp = 0;
 game.boss.nextCard(game);
 game.pendingBossDefeat = 0;
@@ -691,6 +699,7 @@ assert.equal(game.stageStartScore, 60000, "Stage3 score accounting should begin 
 assert.equal(game.currentStage.boss.name, "ロード・ラグウィード", "Stage3 should define Lord Ragweed as its boss");
 assert.equal(game.currentStage.bossLabel, "三面ボス", "Stage3 boss banner should identify the third stage");
 assert.equal(game.currentStage.boss.spellCards[1].survival, true, "Stage3 second divine attack should be survival");
+assert.equal(game.currentStage.boss.spellCards[2].lifeBars, 3, "Stage3 final divine attack should use the shared multi-gauge timer logic");
 assert.ok(game.background.image.src.includes("stage3_autumn_pollen_road.png"), "Stage3 should use the autumn pollen road background");
 game.save.data.highScores.hard.stage3 = 0;
 game.score.value = 70000;
@@ -973,6 +982,9 @@ finishBossCardTransition();
 assert.equal(game.boss.currentCard.pattern, "birchHorizontalBurial", "Stage4 survival timeout should advance to phase 3");
 assert.equal(game.boss.invincible, false, "Stage4 survival completion should always release boss invincibility");
 assert.equal(game.decorativeSnowflakes.length, 0, "Stage4 decorative snow should clear on phase transition");
+game.boss.currentCard.age = 444;
+game.boss.breakCurrentLifeBar(game);
+assert.equal(game.boss.currentCard.age, 0, "Stage4 final gauge break should reset its timer");
 
 game.currentMode = "arcade";
 game.save.saveProgress({ gameCleared: false, endingViewed: false, exStageUnlocked: false });
@@ -1079,7 +1091,21 @@ assert.equal(game.leaderboard.entries[0].continueCount, 0, "ranking should recor
 
 game.developerMode = true;
 game.debugMode = true;
+game.debugVisible = true;
 game.state.mode = "stage";
+assert.ok(game.developerOverlay.y > 400, "developer overlay should default to the lower-right play area");
+const overlayStartX = game.developerOverlay.x;
+const overlayStartY = game.developerOverlay.y;
+assert.equal(game.handleDeveloperOverlayPointerDown({ pointerId: 91 }, { x: overlayStartX + 8, y: overlayStartY + 8 }), true, "developer overlay header should begin a drag");
+assert.equal(game.moveDeveloperOverlay({ pointerId: 91, clientX: 140, clientY: 180 }), true, "developer overlay should follow its captured pointer");
+assert.notEqual(game.developerOverlay.x, overlayStartX, "developer overlay drag should change its position");
+assert.equal(game.endDeveloperOverlayDrag(91), true, "developer overlay should release its drag pointer");
+assert.equal(game.handleDeveloperOverlayPointerDown({ pointerId: 92 }, {
+  x: game.developerOverlay.x + game.developerOverlay.width - 4,
+  y: game.developerOverlay.y + 8,
+}), true, "developer overlay close button should consume the tap");
+assert.equal(game.debugVisible, false, "developer overlay close button should hide the panel");
+game.debugVisible = true;
 const developerLives = game.life.lives;
 game.player.invincible = 0;
 game.player.hit(game);
